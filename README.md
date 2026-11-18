@@ -171,6 +171,8 @@ Copy `.env.example` to `.env` at the repository root (or `apps/api/.env`) and ad
 | `WHATSAPP_API_URL` / `WHATSAPP_PHONE_NUMBER_ID` / `WHATSAPP_TOKEN` | unset | Real WhatsApp delivery; unset = simulated |
 | `WHATSAPP_VERIFY_TOKEN` / `WHATSAPP_APP_SECRET` | unset | Webhook verification and signature checking |
 | `WHATSAPP_TEMPLATE_NAME` / `WHATSAPP_TEMPLATE_LANG` | unset | Send via an approved utility template instead of free text |
+| `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_WHATSAPP_FROM` | unset | Twilio WhatsApp (takes precedence over the Cloud API) |
+| `WHATSAPP_DEFAULT_COUNTRY_CODE` | `91` | Country code added to 10-digit mobile numbers |
 | `SESSION_IDLE_MINUTES` / `SESSION_ABSOLUTE_HOURS` | `30` / `8` | Session policy |
 | `APP_BASE_URL` | `http://localhost:4000` | Public base URL |
 
@@ -187,7 +189,8 @@ Copy `.env.example` to `.env` at the repository root (or `apps/api/.env`) and ad
 `vercel.json` builds the web bundle and runs the API as a single Vercel Function (`api/index.js`).
 On Vercel the SQLite database and notification outbox live in `/tmp`, so data (users, requests,
 sessions) is recreated on each cold start and is not shared between concurrent function instances.
-Use this only for a demo; run `npm start` or the Docker/PostgreSQL profile for persistent data.
+The background worker is disabled there, so queued notifications are not dispatched. Use this only
+for a demo; run `npm start` or the Docker/PostgreSQL profile for persistent data and real delivery.
 
 ---
 
@@ -200,6 +203,7 @@ Use this only for a demo; run `npm start` or the Docker/PostgreSQL profile for p
 | `npm run seed` | Seed demo data only if the register is empty |
 | `npm run build` | Build shared package, API and web bundle |
 | `npm start` | Run the production build, serving the UI and API on `:4000` |
+| `npm run notify:test -w @vams/api -- <email\|whatsapp> <recipient>` | Send one test notification with the configured provider |
 | `npm run dev:api` / `npm run dev:web` | Development servers |
 | `npm test` | Shared domain tests + API integration tests |
 | `npm run typecheck` | Typecheck all workspaces |

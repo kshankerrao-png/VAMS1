@@ -24,6 +24,12 @@ export interface WhatsappConfig {
   templateLang: string;
 }
 
+export interface TwilioConfig {
+  accountSid: string;
+  authToken: string;
+  from: string;
+}
+
 export interface AppConfig {
   repoRoot: string;
   port: number;
@@ -41,8 +47,10 @@ export interface AppConfig {
   allowSimulation: boolean;
   emailConfigured: boolean;
   whatsappConfigured: boolean;
+  whatsappCountryCode: string;
   smtp: SmtpConfig;
   whatsapp: WhatsappConfig;
+  twilio: TwilioConfig;
   appBaseUrl: string;
   appVersion: string;
 }
@@ -110,6 +118,14 @@ export function loadConfig(): AppConfig {
     templateLang: env.WHATSAPP_TEMPLATE_LANG ?? 'en',
   };
 
+  const twilio: TwilioConfig = {
+    accountSid: env.TWILIO_ACCOUNT_SID ?? '',
+    authToken: env.TWILIO_AUTH_TOKEN ?? '',
+    from: env.TWILIO_WHATSAPP_FROM ?? '',
+  };
+  const twilioConfigured = Boolean(twilio.accountSid && twilio.authToken && twilio.from);
+  const whatsappCloudConfigured = Boolean(whatsapp.phoneNumberId && whatsapp.token);
+
   const allowSimulation = env.ALLOW_NOTIFICATION_SIMULATION
     ? env.ALLOW_NOTIFICATION_SIMULATION === 'true'
     : !isProd;
@@ -130,9 +146,11 @@ export function loadConfig(): AppConfig {
     workerIntervalMs: numberFrom(env.WORKER_INTERVAL_MS, 3000),
     allowSimulation,
     emailConfigured: Boolean(smtp.host),
-    whatsappConfigured: Boolean(whatsapp.phoneNumberId && whatsapp.token),
+    whatsappConfigured: twilioConfigured || whatsappCloudConfigured,
+    whatsappCountryCode: (env.WHATSAPP_DEFAULT_COUNTRY_CODE ?? '91').replace(/\D/g, '') || '91',
     smtp,
     whatsapp,
+    twilio,
     appBaseUrl: env.APP_BASE_URL ?? `http://localhost:${numberFrom(env.PORT, 4000)}`,
     appVersion: '1.0.0',
   };
