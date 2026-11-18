@@ -23,8 +23,8 @@ export class TemplatesService {
     @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
-  get(channel: NotificationChannel): TemplateRecord {
-    const row = this.db.get<TemplateRow>(
+  async get(channel: NotificationChannel): Promise<TemplateRecord> {
+    const row = await this.db.get<TemplateRow>(
       `SELECT t.channel, t.subject, t.body, t.version, t.updated_at, u.name AS updated_by_name
        FROM notification_templates t
        LEFT JOIN users u ON u.id = t.updated_by
@@ -52,15 +52,15 @@ export class TemplatesService {
     };
   }
 
-  update(
+  async update(
     channel: NotificationChannel,
     input: { subject?: string; body: string },
     actor: AuthUser,
     context: RequestContext,
-  ): TemplateRecord {
-    const before = this.get(channel);
+  ): Promise<TemplateRecord> {
+    const before = await this.get(channel);
     const timestamp = nowIso();
-    this.db.run(
+    await this.db.run(
       `INSERT INTO notification_templates (id, channel, subject, body, version, active, updated_by, updated_at)
        VALUES (?, ?, ?, ?, 1, 1, ?, ?)
        ON CONFLICT(channel) DO UPDATE SET
@@ -77,7 +77,7 @@ export class TemplatesService {
       actor.id,
       timestamp,
     );
-    this.audit.log({
+    await this.audit.log({
       actor: { id: actor.id, name: actor.name },
       action: 'TEMPLATE_UPDATED',
       entityType: 'notification_template',

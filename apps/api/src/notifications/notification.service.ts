@@ -76,12 +76,12 @@ export class NotificationService {
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
-  queueForApproval(
+  async queueForApproval(
     requestId: string,
     visitor: { email: string; mobile: string },
     actor: AuthUser,
     context: RequestContext,
-  ): void {
+  ): Promise<void> {
     const timestamp = nowIso();
     const recipients: Array<{ channel: NotificationChannel; recipient: string }> = [
       { channel: 'EMAIL', recipient: visitor.email },
@@ -90,7 +90,7 @@ export class NotificationService {
     for (const entry of recipients) {
       const id = randomUUID();
       if (!entry.recipient) {
-        this.db.run(
+        await this.db.run(
           `INSERT INTO notifications
            (id, request_id, channel, recipient, status, attempt, max_attempts, next_attempt_at, error_message, created_at, updated_at)
            VALUES (?, ?, ?, ?, 'SKIPPED', 0, 3, NULL, ?, ?, ?)`,
@@ -102,7 +102,7 @@ export class NotificationService {
           timestamp,
           timestamp,
         );
-        this.audit.log({
+        await this.audit.log({
           actor: { id: actor.id, name: actor.name },
           action: 'NOTIFICATION_SKIPPED',
           entityType: 'notification',
@@ -112,7 +112,7 @@ export class NotificationService {
         });
         continue;
       }
-      this.db.run(
+      await this.db.run(
         `INSERT INTO notifications
          (id, request_id, channel, recipient, status, attempt, max_attempts, next_attempt_at, created_at, updated_at)
          VALUES (?, ?, ?, ?, 'QUEUED', 0, 3, ?, ?, ?)`,
@@ -124,7 +124,7 @@ export class NotificationService {
         timestamp,
         timestamp,
       );
-      this.audit.log({
+      await this.audit.log({
         actor: { id: actor.id, name: actor.name },
         action: 'NOTIFICATION_QUEUED',
         entityType: 'notification',
@@ -136,7 +136,7 @@ export class NotificationService {
   }
 
   async processDue(limit = 20): Promise<number> {
-    const rows = this.db.all<NotificationRow>(
+    const rows = await this.db.all<NotificationRow>(
       `SELECT * FROM notifications
        WHERE status = 'QUEUED' AND (next_attempt_at IS NULL OR next_attempt_at <= ?)
        ORDER BY created_at ASC
@@ -150,20 +150,20 @@ export class NotificationService {
     return rows.length;
   }
 
-  listByRequest(requestId: string): NotificationRecord[] {
-    const rows = this.db.all<NotificationRow>(
+  async listByRequest(requestId: string): Promise<NotificationRecord[]> {
+    const rows = await this.db.all<NotificationRow>(
       'SELECT * FROM notifications WHERE request_id = ? ORDER BY created_at ASC',
       requestId,
     );
     return rows.map((row) => this.toRecord(row));
   }
 
-  resend(id: string, actor: AuthUser, context: RequestContext): NotificationRecord {
-    const row = this.db.get<NotificationRow>('SELECT * FROM notifications WHERE id = ?', id);
+  async resend(id: string, actor: AuthUser, context: RequestContext): Promise<NotificationRecord> {
+    const row = await this.db.get<NotificationRow>('SELECT * FROM notifications WHERE id = ?', id);
     if (!row) throw notFound('Notification', 'NOTIFICATION_NOT_FOUND');
     if (!row.recipient) throw badRequest('NO_RECIPIENT', 'No recipient on file', 'Update the visitor contact details and try again.');
     const timestamp = nowIso();
-    this.db.run(
+    await this.db.run(
       `UPDATE notifications
        SET status = 'QUEUED', attempt = 0, next_attempt_at = ?, error_message = NULL, updated_at = ?,
            sent_at = NULL, delivered_at = NULL, provider_message_id = NULL
@@ -172,7 +172,7 @@ export class NotificationService {
       timestamp,
       id,
     );
-    this.audit.log({
+    await this.audit.log({
       actor: { id: actor.id, name: actor.name },
       action: 'NOTIFICATION_RESENT',
       entityType: 'notification',
@@ -180,17 +180,17 @@ export class NotificationService {
       after: { requestId: row.request_id, channel: row.channel },
       ...context,
     });
-    return this.toRecord(this.db.get<NotificationRow>('SELECT * FROM notifications WHERE id = ?', id)!);
+    return this.toRecord((await this.db.get<NotificationRow>('SELECT * FROM notifications WHERE id = ?', id))!);
   }
 
-  simulateDelivery(id: string, actor: AuthUser, context: RequestContext): NotificationRecord {
+  async simulateDelivery(id: string, actor: AuthUser, context: RequestContext): Promise<NotificationRecord> {
     if (!this.config.allowSimulation) {
       throw forbidden('Delivery simulation is disabled.');
     }
-    const row = this.db.get<NotificationRow>('SELECT * FROM notifications WHERE id = ?', id);
+    const row = await this.db.get<NotificationRow>('SELECT * FROM notifications WHERE id = ?', id);
     if (!row) throw notFound('Notification', 'NOTIFICATION_NOT_FOUND');
     const timestamp = nowIso();
-    this.db.run(
+    await this.db.run(
       `UPDATE notifications
        SET status = 'DELIVERED', delivered_at = ?, sent_at = coalesce(sent_at, ?), updated_at = ?,
            provider_message_id = coalesce(provider_message_id, ?), error_message = NULL
@@ -201,7 +201,7 @@ export class NotificationService {
       `simulated-${row.id}`,
       id,
     );
-    this.audit.log({
+    await this.audit.log({
       actor: { id: actor.id, name: actor.name },
       action: 'NOTIFICATION_DELIVERED',
       entityType: 'notification',
@@ -209,22 +209,22 @@ export class NotificationService {
       after: { requestId: row.request_id, channel: row.channel, simulated: true },
       ...context,
     });
-    return this.toRecord(this.db.get<NotificationRow>('SELECT * FROM notifications WHERE id = ?', id)!);
+    return this.toRecord((await this.db.get<NotificationRow>('SELECT * FROM notifications WHERE id = ?', id))!);
   }
 
-  markByProviderMessageId(
+  async markByProviderMessageId(
     providerMessageId: string,
     status: NotificationStatus,
     errorMessage?: string,
-  ): NotificationRecord | null {
-    const row = this.db.get<NotificationRow>(
+  ): Promise<NotificationRecord | null> {
+    const row = await this.db.get<NotificationRow>(
       'SELECT * FROM notifications WHERE provider_message_id = ?',
       providerMessageId,
     );
     if (!row) return null;
     const timestamp = nowIso();
     if (status === 'DELIVERED') {
-      this.db.run(
+      await this.db.run(
         `UPDATE notifications
          SET status = 'DELIVERED', delivered_at = coalesce(delivered_at, ?), sent_at = coalesce(sent_at, ?), updated_at = ?
          WHERE id = ?`,
@@ -233,7 +233,7 @@ export class NotificationService {
         timestamp,
         row.id,
       );
-      this.audit.log({
+      await this.audit.log({
         actor: SYSTEM,
         action: 'NOTIFICATION_DELIVERED',
         entityType: 'notification',
@@ -242,13 +242,13 @@ export class NotificationService {
         ...WORKER_SOURCE,
       });
     } else if (status === 'FAILED') {
-      this.db.run(
+      await this.db.run(
         `UPDATE notifications SET status = 'FAILED', error_message = ?, updated_at = ? WHERE id = ?`,
         errorMessage ?? 'Provider reported failure',
         timestamp,
         row.id,
       );
-      this.audit.log({
+      await this.audit.log({
         actor: SYSTEM,
         action: 'NOTIFICATION_FAILED',
         entityType: 'notification',
@@ -257,13 +257,13 @@ export class NotificationService {
         ...WORKER_SOURCE,
       });
     } else if (status === 'SENT' && row.status !== 'DELIVERED') {
-      this.db.run(
+      await this.db.run(
         `UPDATE notifications SET status = 'SENT', sent_at = coalesce(sent_at, ?), updated_at = ? WHERE id = ?`,
         timestamp,
         timestamp,
         row.id,
       );
-      this.audit.log({
+      await this.audit.log({
         actor: SYSTEM,
         action: 'NOTIFICATION_SENT',
         entityType: 'notification',
@@ -272,11 +272,11 @@ export class NotificationService {
         ...WORKER_SOURCE,
       });
     }
-    return this.toRecord(this.db.get<NotificationRow>('SELECT * FROM notifications WHERE id = ?', row.id)!);
+    return this.toRecord((await this.db.get<NotificationRow>('SELECT * FROM notifications WHERE id = ?', row.id))!);
   }
 
   private async sendOne(row: NotificationRow): Promise<void> {
-    const context = this.db.get<ContextRow>(
+    const context = await this.db.get<ContextRow>(
       `SELECT r.id, r.reference, r.purpose, r.accompanying_count, r.assigned_date, r.assigned_time, r.status,
               v.name, v.designation, v.organization, v.email, v.mobile
        FROM appointment_requests r
@@ -286,13 +286,13 @@ export class NotificationService {
     );
 
     if (!context || !context.assigned_date || !context.assigned_time) {
-      this.db.run(
+      await this.db.run(
         `UPDATE notifications SET status = 'FAILED', error_message = ?, updated_at = ? WHERE id = ?`,
         'Appointment details are incomplete',
         nowIso(),
         row.id,
       );
-      this.audit.log({
+      await this.audit.log({
         actor: SYSTEM,
         action: 'NOTIFICATION_FAILED',
         entityType: 'notification',
@@ -303,8 +303,8 @@ export class NotificationService {
       return;
     }
 
-    const template = this.templates.get(row.channel);
-    const settings = this.settings.get();
+    const template = await this.templates.get(row.channel);
+    const settings = (await this.settings.get());
     const variables = {
       visitor_name: context.name,
       designation: context.designation ?? '',
@@ -335,7 +335,7 @@ export class NotificationService {
       });
       const timestamp = nowIso();
       const status: NotificationStatus = result.deliveredImmediately ? 'DELIVERED' : 'SENT';
-      this.db.run(
+      await this.db.run(
         `UPDATE notifications
          SET status = ?, attempt = attempt + 1, provider_message_id = ?, error_message = NULL,
              template_version = ?, rendered_subject = ?, rendered_body = ?, next_attempt_at = NULL,
@@ -351,7 +351,7 @@ export class NotificationService {
         timestamp,
         row.id,
       );
-      this.audit.log({
+      await this.audit.log({
         actor: SYSTEM,
         action: 'NOTIFICATION_SENT',
         entityType: 'notification',
@@ -364,7 +364,7 @@ export class NotificationService {
         ...WORKER_SOURCE,
       });
       if (result.deliveredImmediately) {
-        this.audit.log({
+        await this.audit.log({
           actor: SYSTEM,
           action: 'NOTIFICATION_DELIVERED',
           entityType: 'notification',
@@ -378,7 +378,7 @@ export class NotificationService {
       const message = error instanceof Error ? error.message : String(error);
       const final = attempt >= row.max_attempts;
       const delay = [30_000, 120_000, 600_000][Math.min(attempt - 1, 2)];
-      this.db.run(
+      await this.db.run(
         `UPDATE notifications
          SET status = ?, attempt = ?, error_message = ?, next_attempt_at = ?, updated_at = ?
          WHERE id = ?`,
@@ -389,7 +389,7 @@ export class NotificationService {
         nowIso(),
         row.id,
       );
-      this.audit.log({
+      await this.audit.log({
         actor: SYSTEM,
         action: 'NOTIFICATION_FAILED',
         entityType: 'notification',

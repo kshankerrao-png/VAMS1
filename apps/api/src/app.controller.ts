@@ -13,8 +13,8 @@ export class AppController {
 
   @Public()
   @Get('health')
-  health() {
-    const healthy = this.db.isHealthy();
+  async health() {
+    const healthy = await this.db.isHealthy();
     return {
       status: healthy ? 'ok' : 'degraded',
       time: nowIso(),

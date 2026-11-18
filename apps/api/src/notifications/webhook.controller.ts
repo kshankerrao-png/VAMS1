@@ -45,7 +45,7 @@ export class WebhookController {
 
   @Public()
   @Post('whatsapp')
-  receive(@Req() request: Request & { rawBody?: Buffer }, @Body() body: WebhookBody) {
+  async receive(@Req() request: Request & { rawBody?: Buffer }, @Body() body: WebhookBody) {
     this.verifySignature(request, body);
 
     const statuses = (body.entry ?? []).flatMap((entry) =>
@@ -58,7 +58,7 @@ export class WebhookController {
       const mapped = this.mapStatus(entry.status);
       if (!mapped) continue;
       const reason = entry.errors?.[0]?.message ?? entry.errors?.[0]?.title;
-      const result = this.notifications.markByProviderMessageId(entry.id, mapped, reason);
+      const result = await this.notifications.markByProviderMessageId(entry.id, mapped, reason);
       if (result) processed += 1;
     }
     return { received: true, processed };

@@ -162,6 +162,7 @@ Copy `.env.example` to `.env` at the repository root (or `apps/api/.env`) and ad
 | Variable | Default | Purpose |
 |---|---|---|
 | `PORT` | `4000` | HTTP port |
+| `DATABASE_URL` | unset | Postgres/Supabase connection string (Session Pooler, `sslmode=require`); unset = SQLite |
 | `DB_PATH` | `storage/vams.db` | SQLite file, relative to the repo root |
 | `COOKIE_SECURE` | `false` | Set `true` when serving over HTTPS |
 | `WORKER_ENABLED` | `true` | Background notification dispatcher |
@@ -188,10 +189,10 @@ Copy `.env.example` to `.env` at the repository root (or `apps/api/.env`) and ad
 **Vercel preview deployment**
 
 `vercel.json` builds the web bundle and runs the API as a single Vercel Function (`api/index.js`).
-On Vercel the SQLite database and notification outbox live in `/tmp`, so data (users, requests,
-sessions) is recreated on each cold start and is not shared between concurrent function instances.
-The background worker is disabled there, so queued notifications are not dispatched. Use this only
-for a demo; run `npm start` or the Docker/PostgreSQL profile for persistent data and real delivery.
+On Vercel the background worker is disabled, so queued notifications are not dispatched. Without
+`DATABASE_URL` the SQLite database and notification outbox live in `/tmp` and reset on every cold
+start; set `DATABASE_URL` to the Supabase Session Pooler URI for persistent data. Run `npm start` or
+the Docker/PostgreSQL profile when you need the worker and real delivery.
 
 ---
 
@@ -200,7 +201,8 @@ for a demo; run `npm start` or the Docker/PostgreSQL profile for persistent data
 | Command | Description |
 |---|---|
 | `npm install` | Install all workspaces |
-| `npm run db:reset` | Delete the local database and reseed demonstration data (stop the server first) |
+| `npm run db:reset` | Delete the local database and reseed demonstration data (stop the server first; Postgres requires `-- --force`) |
+| `npm run db:import` | Apply the Postgres schema and copy the local SQLite data into `DATABASE_URL` (`-- --force` replaces existing data) |
 | `npm run seed` | Seed demo data only if the register is empty |
 | `npm run build` | Build shared package, API and web bundle |
 | `npm start` | Run the production build, serving the UI and API on `:4000` |
@@ -245,11 +247,14 @@ verified without external infrastructure:
 
 | Production target (`tech-stack.md`) | Local implementation here | Why |
 |---|---|---|
-| PostgreSQL 17 | SQLite (`node:sqlite`) | No database server is available on the target machine; SQLite keeps the demo one-command |
+| PostgreSQL 17 | SQLite (`node:sqlite`) by default; Postgres/Supabase when `DATABASE_URL` is set | SQLite keeps the demo one-command; the same SQL runs on both drivers |
 | Redis + BullMQ | Durable outbox table + in-process poller worker | Same retry/backoff/delivery semantics without a broker; single-node deployment |
 | MinIO/S3 attachments | Deferred — "documents for reference" is a text field | PRD OQ-5/D-5 is still an open decision |
 | Playwright PDF service | Browser print stylesheet for the daily schedule and confirmation | No headless browser dependency |
 | SMTP + WhatsApp providers | Real adapters when configured, file/simulated transports otherwise | End-to-end demo without credentials; production behavior unchanged |
+
+Set `DATABASE_URL` to a Supabase Session Pooler URI to use Postgres; the schema is created on first
+connection, and `npm run db:import` copies the existing SQLite rows into it.
 
 The repository code is organized so these are infrastructure swaps, not product rewrites. See
 [`docs/adr/0001-runtime-profile.md`](docs/adr/0001-runtime-profile.md).

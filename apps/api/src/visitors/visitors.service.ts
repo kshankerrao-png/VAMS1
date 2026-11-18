@@ -47,7 +47,7 @@ const VISITOR_SELECT = `
 export class VisitorsService {
   constructor(@Inject(DatabaseService) private readonly db: DatabaseService) {}
 
-  lookup(rawQuery: string): VisitorLookupResponse {
+  async lookup(rawQuery: string): Promise<VisitorLookupResponse> {
     const query = rawQuery.trim().toLowerCase();
     if (query.length < 2) return { query: rawQuery, matches: [], autoFillProfile: null };
 
@@ -63,7 +63,7 @@ export class VisitorsService {
       pattern,
     ];
 
-    const rows = this.db.all<VisitorRow>(
+    const rows = await this.db.all<VisitorRow>(
       `${VISITOR_SELECT}
        WHERE v.name_normalized LIKE ?
           OR lower(coalesce(v.designation, '')) LIKE ?
@@ -95,17 +95,17 @@ export class VisitorsService {
     return { query: rawQuery, matches, autoFillProfile };
   }
 
-  get(visitorId: string): { visitor: VisitorProfile; history: VisitorHistoryItem[] } | null {
-    const row = this.db.get<VisitorRow>(`${VISITOR_SELECT} WHERE v.id = ?`, visitorId);
+  async get(visitorId: string): Promise<{ visitor: VisitorProfile; history: VisitorHistoryItem[] } | null> {
+    const row = await this.db.get<VisitorRow>(`${VISITOR_SELECT} WHERE v.id = ?`, visitorId);
     if (!row) return null;
     return {
       visitor: this.mapProfile(row),
-      history: this.history(visitorId),
+      history: await this.history(visitorId),
     };
   }
 
-  history(visitorId: string, limit = 25): VisitorHistoryItem[] {
-    const rows = this.db.all<HistoryRow>(
+  async history(visitorId: string, limit = 25): Promise<VisitorHistoryItem[]> {
+    const rows = await this.db.all<HistoryRow>(
       `SELECT r.id, r.reference, r.status, r.purpose, r.request_date,
               r.assigned_date, r.assigned_time, d.name AS decided_by_name, r.rejection_reason
        FROM appointment_requests r
@@ -129,8 +129,8 @@ export class VisitorsService {
     }));
   }
 
-  profile(visitorId: string): VisitorProfile | null {
-    const row = this.db.get<VisitorRow>(`${VISITOR_SELECT} WHERE v.id = ?`, visitorId);
+  async profile(visitorId: string): Promise<VisitorProfile | null> {
+    const row = await this.db.get<VisitorRow>(`${VISITOR_SELECT} WHERE v.id = ?`, visitorId);
     return row ? this.mapProfile(row) : null;
   }
 

@@ -116,7 +116,7 @@ export async function runDemoSeed(log: (message: string) => void = console.log):
     const db = app.get(DatabaseService);
     await ensureBaseline(db, app.get(PasswordService), app.get(AuditService));
 
-    const existing = db.get<{ count: number }>('SELECT COUNT(*) AS count FROM appointment_requests');
+    const existing = await db.get<{ count: number }>('SELECT COUNT(*) AS count FROM appointment_requests');
     if (Number(existing?.count ?? 0) > 0) {
       log('Demo data already present — skipping. Use "npm run db:reset" for a clean reseed.');
       return;
@@ -126,13 +126,13 @@ export async function runDemoSeed(log: (message: string) => void = console.log):
     const requests = app.get(RequestsService);
     const worker = app.get(NotificationWorker);
 
-    const actor = (username: string): AuthUser => {
-      const row = db.get<UserRow>('SELECT * FROM users WHERE username = ?', username);
+    const actor = async (username: string): Promise<AuthUser> => {
+      const row = await db.get<UserRow>('SELECT * FROM users WHERE username = ?', username);
       if (!row) throw new Error(`Seed user ${username} is missing.`);
       return toAuthUser(row, permissionsForRole(row.role));
     };
-    const peshi = actor('peshi');
-    const secretary = actor('secretary');
+    const peshi = await actor('peshi');
+    const secretary = await actor('secretary');
     const today = istDay();
 
     const create = (
@@ -179,10 +179,10 @@ export async function runDemoSeed(log: (message: string) => void = console.log):
     const reject = (id: string, reason: string) =>
       requests.reject(id, { reason }, secretary, CONTEXT);
 
-    const ageRequest = (id: string, days: number) => {
+    const ageRequest = async (id: string, days: number): Promise<void> => {
       const day = addDays(today, -days);
       const timestamp = new Date(`${day}T10:00:00+05:30`).toISOString();
-      db.run(
+      await db.run(
         'UPDATE appointment_requests SET request_date = ?, request_day = ? WHERE id = ?',
         timestamp,
         day,
@@ -190,110 +190,110 @@ export async function runDemoSeed(log: (message: string) => void = console.log):
       );
     };
 
-    const rameshPending = create(
+    const rameshPending = await create(
       VISITORS.ramesh,
       'Represent NHAI on the pending land acquisition proposal for the outer ring corridor',
     );
-    const rameshApproved = create(
+    const rameshApproved = await create(
       VISITORS.ramesh,
       'Follow up on the corridor widening review minutes',
     );
-    const rameshCompleted = create(
+    const rameshCompleted = await create(
       VISITORS.ramesh,
       'Submit the revised DPR for the bypass alignment',
       { documentsReference: 'DPR Vol I & II' },
     );
-    const sunitaCompleted = create(
+    const sunitaCompleted = await create(
       VISITORS.sunita,
       'Discuss pending payments for completed road works',
     );
-    const sunitaRejected = create(
+    const sunitaRejected = await create(
       VISITORS.sunita,
       'Request for an additional contract extension',
     );
-    const arjunApproved = create(
+    const arjunApproved = await create(
       VISITORS.arjun,
       'Quarterly review of state highway maintenance contracts',
     );
-    const arjunPending = create(
+    const arjunPending = await create(
       VISITORS.arjun,
       'Proposal for bridge rehabilitation funds',
     );
-    const fatimaPending = create(
+    const fatimaPending = await create(
       VISITORS.fatima,
       'Representation on the transport worker welfare scheme',
       { accompanyingCount: 3, accompanyingNames: 'R. Das, S. Ali, M. Khan' },
     );
-    const vikramApproved = create(
+    const vikramApproved = await create(
       VISITORS.vikram,
       'Fleet permit discussion for inter-state transport operations',
     );
-    const vikramCompleted = create(
+    const vikramCompleted = await create(
       VISITORS.vikram,
       'Kick-off meeting for the logistics hub feasibility study',
     );
-    const ananyaPending = create(
+    const ananyaPending = await create(
       VISITORS.ananya,
       'Presentation of the revised station design',
       { accompanyingCount: 2, accompanyingNames: 'R. Menon, P. Shah' },
     );
-    const rafiRejected = create(
+    const rafiRejected = await create(
       VISITORS.rafi,
       'Reconsideration of tender disqualification',
     );
-    const rafiPending = create(
+    const rafiPending = await create(
       VISITORS.rafi,
       'Clarification on the new tender norms',
     );
-    const kavitaPending = create(
+    const kavitaPending = await create(
       VISITORS.kavita,
       'Interview regarding the road safety programme',
     );
-    const sureshApproved = create(
+    const sureshApproved = await create(
       VISITORS.suresh,
       'Coordination on canal road restoration',
     );
-    const nehaApproved = create(
+    const nehaApproved = await create(
       VISITORS.neha,
       'Discussion on the urban mobility study findings',
       { documentsReference: 'Mobility study summary' },
     );
-    const nehaCompleted = create(
+    const nehaCompleted = await create(
       VISITORS.neha,
       'Presentation of the mobility study baseline',
     );
 
-    approve(rameshApproved.id, addDays(today, 2), '10:30');
-    approve(arjunApproved.id, addDays(today, 1), '15:00');
-    approve(vikramApproved.id, addDays(today, 3), '12:00');
-    approve(sureshApproved.id, today, '09:30');
-    approve(nehaApproved.id, addDays(today, 4), '16:30');
+    await approve(rameshApproved.id, addDays(today, 2), '10:30');
+    await approve(arjunApproved.id, addDays(today, 1), '15:00');
+    await approve(vikramApproved.id, addDays(today, 3), '12:00');
+    await approve(sureshApproved.id, today, '09:30');
+    await approve(nehaApproved.id, addDays(today, 4), '16:30');
 
-    approve(rameshCompleted.id, addDays(today, -20), '11:15');
-    materialize(rameshCompleted.id, '11:05');
-    approve(sunitaCompleted.id, addDays(today, -12), '10:00');
-    materialize(sunitaCompleted.id, '10:10');
-    approve(vikramCompleted.id, addDays(today, -28), '14:30');
-    materialize(vikramCompleted.id, '14:25');
-    approve(nehaCompleted.id, addDays(today, -35), '11:00');
-    materialize(nehaCompleted.id, '11:20');
+    await approve(rameshCompleted.id, addDays(today, -20), '11:15');
+    await materialize(rameshCompleted.id, '11:05');
+    await approve(sunitaCompleted.id, addDays(today, -12), '10:00');
+    await materialize(sunitaCompleted.id, '10:10');
+    await approve(vikramCompleted.id, addDays(today, -28), '14:30');
+    await materialize(vikramCompleted.id, '14:25');
+    await approve(nehaCompleted.id, addDays(today, -35), '11:00');
+    await materialize(nehaCompleted.id, '11:20');
 
-    reject(sunitaRejected.id, 'Please route the request through the works division.');
-    reject(rafiRejected.id, 'The matter is sub judice; refer to the legal cell.');
+    await reject(sunitaRejected.id, 'Please route the request through the works division.');
+    await reject(rafiRejected.id, 'The matter is sub judice; refer to the legal cell.');
 
-    ageRequest(arjunPending.id, 3);
-    ageRequest(ananyaPending.id, 6);
-    ageRequest(kavitaPending.id, 2);
+    await ageRequest(arjunPending.id, 3);
+    await ageRequest(ananyaPending.id, 6);
+    await ageRequest(kavitaPending.id, 2);
 
     await worker.drainAll();
 
-    const failureTarget = db.get<{ id: string; request_id: string; channel: string }>(
+    const failureTarget = await db.get<{ id: string; request_id: string; channel: string }>(
       `SELECT id, request_id, channel FROM notifications
        WHERE status = 'DELIVERED' AND channel = 'WHATSAPP'
        ORDER BY created_at DESC LIMIT 1`,
     );
     if (failureTarget) {
-      db.run(
+      await db.run(
         `UPDATE notifications
          SET status = 'FAILED', delivered_at = NULL, error_message = ?, updated_at = ?
          WHERE id = ?`,
@@ -301,7 +301,7 @@ export async function runDemoSeed(log: (message: string) => void = console.log):
         nowIso(),
         failureTarget.id,
       );
-      audit.log({
+      await audit.log({
         actor: { id: null, name: 'System (demo seed)' },
         action: 'NOTIFICATION_FAILED',
         entityType: 'notification',
@@ -313,14 +313,14 @@ export async function runDemoSeed(log: (message: string) => void = console.log):
       });
     }
 
-    const queuedTarget = db.get<{ id: string; request_id: string; channel: string }>(
+    const queuedTarget = await db.get<{ id: string; request_id: string; channel: string }>(
       `SELECT id, request_id, channel FROM notifications
        WHERE status = 'DELIVERED' AND channel = 'EMAIL'
        ORDER BY created_at ASC LIMIT 1`,
     );
     if (queuedTarget) {
       const retryAt = new Date(Date.now() + 86_400_000).toISOString();
-      db.run(
+      await db.run(
         `UPDATE notifications
          SET status = 'QUEUED', attempt = 0, next_attempt_at = ?, sent_at = NULL, delivered_at = NULL,
              provider_message_id = NULL, updated_at = ?
@@ -331,7 +331,7 @@ export async function runDemoSeed(log: (message: string) => void = console.log):
       );
     }
 
-    const counts = db.all<{ status: string; count: number }>(
+    const counts = await db.all<{ status: string; count: number }>(
       'SELECT status, COUNT(*) AS count FROM appointment_requests GROUP BY status',
     );
     log('Demo data seeded.');

@@ -19,6 +19,7 @@
     "start": "node apps/api/dist/main.js",
     "seed": "npm run seed -w @vams/api",
     "db:reset": "npm run db:reset -w @vams/api",
+    "db:import": "npm run db:import -w @vams/api",
     "test": "npm run test -w @vams/shared && npm run test -w @vams/api",
     "typecheck": "npm run typecheck -w @vams/shared && npm run typecheck -w @vams/api && npm run typecheck -w @vams/web"
   }

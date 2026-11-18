@@ -136,14 +136,18 @@ export class RegisterController {
 
   @Get('export')
   @RequirePermissions('register:export')
-  export(
+  async export(
     @Query() query: Record<string, unknown>,
     @CurrentUser() user: AuthUser,
     @Req() request: Request,
     @Res() response: Response,
   ) {
     const parsed = parseOrThrow(requestQuerySchema, query);
-    const { filename, content } = this.requests.exportCsv(parsed, user, requestContext(request));
+    const { filename, content } = await this.requests.exportCsv(
+      parsed,
+      user,
+      requestContext(request),
+    );
     response.setHeader('Content-Type', 'text/csv; charset=utf-8');
     response.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     response.send(`\uFEFF${content}`);

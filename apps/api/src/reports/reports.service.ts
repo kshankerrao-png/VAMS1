@@ -11,6 +11,8 @@ import {
   addDays,
   dayRange,
   istDay,
+  istDayEndUtcIso,
+  istDayStartUtcIso,
   isValidDay,
   monthStart,
 } from '../common/time';
@@ -23,7 +25,7 @@ export class ReportsService {
     @Inject(SettingsService) private readonly settings: SettingsService,
   ) {}
 
-  summary(fromInput?: string, toInput?: string): ReportSummary {
+  async summary(fromInput?: string, toInput?: string): Promise<ReportSummary> {
     const to = toInput ?? istDay();
     const from = fromInput ?? addDays(to, -29);
     if (!isValidDay(from) || !isValidDay(to)) {
@@ -39,7 +41,7 @@ export class ReportsService {
       REJECTED: 0,
       MATERIALIZED: 0,
     };
-    const statusRows = this.db.all<{ status: RequestStatus; count: number }>(
+    const statusRows = await this.db.all<{ status: RequestStatus; count: number }>(
       `SELECT status, COUNT(*) AS count FROM appointment_requests
        WHERE request_day BETWEEN ? AND ? GROUP BY status`,
       from,
@@ -48,31 +50,31 @@ export class ReportsService {
     for (const row of statusRows) byStatus[row.status] = Number(row.count);
     const totalRequests = Object.values(byStatus).reduce((sum, value) => sum + value, 0);
 
-    const decisionRow = this.db.get<{ count: number }>(
+    const decisionRow = await this.db.get<{ count: number }>(
       `SELECT COUNT(*) AS count FROM appointment_requests WHERE decision_day BETWEEN ? AND ?`,
       from,
       to,
     );
     const today = istDay();
-    const todayRow = this.db.get<{ count: number }>(
+    const todayRow = await this.db.get<{ count: number }>(
       `SELECT COUNT(*) AS count FROM appointment_requests
        WHERE assigned_date = ? AND status IN ('APPROVED', 'MATERIALIZED')`,
       today,
     );
-    const monthRow = this.db.get<{ count: number }>(
+    const monthRow = await this.db.get<{ count: number }>(
       `SELECT COUNT(*) AS count FROM appointment_requests
        WHERE status = 'MATERIALIZED' AND materialized_at IS NOT NULL
-         AND date(materialized_at, '+5 hours', '+30 minutes') BETWEEN ? AND ?`,
-      monthStart(today),
-      today,
+         AND materialized_at >= ? AND materialized_at < ?`,
+      istDayStartUtcIso(monthStart(today)),
+      istDayEndUtcIso(today),
     );
 
-    const notificationRows = this.db.all<{ status: string; count: number }>(
+    const notificationRows = await this.db.all<{ status: string; count: number }>(
       `SELECT status, COUNT(*) AS count FROM notifications
-       WHERE date(created_at, '+5 hours', '+30 minutes') BETWEEN ? AND ?
+       WHERE created_at >= ? AND created_at < ?
        GROUP BY status`,
-      from,
-      to,
+      istDayStartUtcIso(from),
+      istDayEndUtcIso(to),
     );
     const notificationCounts = {
       queued: 0,
@@ -90,13 +92,13 @@ export class ReportsService {
     const successRate =
       denominator === 0 ? 0 : Math.round((notificationCounts.delivered / denominator) * 1000) / 10;
 
-    const requestDayRows = this.db.all<{ day: string; count: number }>(
+    const requestDayRows = await this.db.all<{ day: string; count: number }>(
       `SELECT request_day AS day, COUNT(*) AS count FROM appointment_requests
        WHERE request_day BETWEEN ? AND ? GROUP BY request_day`,
       from,
       to,
     );
-    const decisionDayRows = this.db.all<{ day: string; count: number }>(
+    const decisionDayRows = await this.db.all<{ day: string; count: number }>(
       `SELECT decision_day AS day, COUNT(*) AS count FROM appointment_requests
        WHERE decision_day BETWEEN ? AND ? GROUP BY decision_day`,
       from,
@@ -110,7 +112,7 @@ export class ReportsService {
       decisions: decisionDays.get(date) ?? 0,
     }));
 
-    const organizations = this.db.all<{ organization: string; count: number }>(
+    const organizations = await this.db.all<{ organization: string; count: number }>(
       `SELECT v.organization AS organization, COUNT(*) AS count
        FROM appointment_requests r
        JOIN visitor_profiles v ON v.id = r.visitor_id
@@ -120,7 +122,7 @@ export class ReportsService {
       to,
     );
 
-    const upcomingRows = this.db.all<{ date: string; count: number }>(
+    const upcomingRows = await this.db.all<{ date: string; count: number }>(
       `SELECT assigned_date AS date, COUNT(*) AS count FROM appointment_requests
        WHERE assigned_date BETWEEN ? AND ? AND status = 'APPROVED'
        GROUP BY assigned_date`,
@@ -150,12 +152,12 @@ export class ReportsService {
     };
   }
 
-  schedule(dateInput?: string): ScheduleResponse {
+  async schedule(dateInput?: string): Promise<ScheduleResponse> {
     const day = dateInput ?? istDay();
     if (!isValidDay(day)) {
       throw badRequest('INVALID_DATE', 'Invalid date', 'Use the YYYY-MM-DD date format.');
     }
-    const rows = this.db.all<{
+    const rows = await this.db.all<{
       reference: string;
       assigned_time: string;
       visitor_name: string;
@@ -188,7 +190,7 @@ export class ReportsService {
     }));
     return {
       date: day,
-      venue: this.settings.get().venue,
+      venue: (await this.settings.get()).venue,
       items,
     };
   }

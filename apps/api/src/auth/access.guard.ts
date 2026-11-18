@@ -17,7 +17,7 @@ export class AccessGuard implements CanActivate {
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(PUBLIC_METADATA, [
       context.getHandler(),
       context.getClass(),
@@ -31,7 +31,7 @@ export class AccessGuard implements CanActivate {
     const token = request.cookies?.[this.config.cookieName];
     if (!token) throw unauthorized('AUTH_REQUIRED', 'Sign in to continue.');
 
-    const session = this.sessions.resolve(
+    const session = await this.sessions.resolve(
       token,
       request.ip ?? null,
       request.header('user-agent') ?? null,
@@ -40,7 +40,7 @@ export class AccessGuard implements CanActivate {
       throw unauthorized('SESSION_EXPIRED', 'Your session has expired. Sign in again.');
     }
 
-    const permissions = this.authz.permissionsFor(session.user);
+    const permissions = await this.authz.permissionsFor(session.user);
     request.user = { ...session.user, permissions };
     request.sessionId = session.id;
 
@@ -50,7 +50,7 @@ export class AccessGuard implements CanActivate {
     ]);
     if (required && required.length > 0) {
       for (const permission of required) {
-        if (!this.authz.hasPermission(session.user, permission)) {
+        if (!permissions.includes(permission)) {
           throw forbidden(`Missing permission: ${permission}`);
         }
       }

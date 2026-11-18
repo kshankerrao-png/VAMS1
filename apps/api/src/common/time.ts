@@ -31,6 +31,14 @@ export function isValidDay(value: string): boolean {
   return !Number.isNaN(Date.parse(`${value}T00:00:00+05:30`));
 }
 
+export function istDayStartUtcIso(day: string): string {
+  return new Date(`${day}T00:00:00+05:30`).toISOString();
+}
+
+export function istDayEndUtcIso(day: string): string {
+  return new Date(Date.parse(`${day}T00:00:00+05:30`) + 86_400_000).toISOString();
+}
+
 export function addDays(day: string, days: number): string {
   const date = new Date(`${day}T00:00:00+05:30`);
   date.setUTCDate(date.getUTCDate() + days);

@@ -19,9 +19,9 @@ export class AuditController {
 
   @Get('verify')
   @RequirePermissions('audit:read')
-  verify(@CurrentUser() user: AuthUser, @Req() request: Request) {
-    const result = this.audit.verify();
-    this.audit.log({
+  async verify(@CurrentUser() user: AuthUser, @Req() request: Request) {
+    const result = await this.audit.verify();
+    await this.audit.log({
       actor: { id: user.id, name: user.name },
       action: 'AUDIT_VERIFIED',
       entityType: 'audit_log',

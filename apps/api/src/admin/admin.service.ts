@@ -46,8 +46,8 @@ export class AdminService {
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
-  listUsers(): UserRecord[] {
-    const rows = this.db.all<UserRow>('SELECT * FROM users ORDER BY created_at ASC');
+  async listUsers(): Promise<UserRecord[]> {
+    const rows = await this.db.all<UserRow>('SELECT * FROM users ORDER BY created_at ASC');
     return rows.map(toUserRecord);
   }
 
@@ -56,7 +56,7 @@ export class AdminService {
     actor: AuthUser,
     context: RequestContext,
   ): Promise<UserRecord> {
-    const existing = this.db.get<{ id: string }>(
+    const existing = await this.db.get<{ id: string }>(
       'SELECT id FROM users WHERE username = ?',
       input.username,
     );
@@ -66,7 +66,7 @@ export class AdminService {
     const id = randomUUID();
     const timestamp = nowIso();
     const hash = await this.passwords.hash(input.password);
-    this.db.run(
+    await this.db.run(
       `INSERT INTO users
        (id, username, name, email, role, password_hash, active, must_change_password, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, 1, 1, ?, ?)`,
@@ -79,7 +79,7 @@ export class AdminService {
       timestamp,
       timestamp,
     );
-    this.audit.log({
+    await this.audit.log({
       actor: { id: actor.id, name: actor.name },
       action: 'USER_CREATED',
       entityType: 'user',
@@ -87,17 +87,17 @@ export class AdminService {
       after: { username: input.username, role: input.role, roleLabel: ROLE_LABELS[input.role] },
       ...context,
     });
-    const row = this.db.get<UserRow>('SELECT * FROM users WHERE id = ?', id)!;
+    const row = (await this.db.get<UserRow>('SELECT * FROM users WHERE id = ?', id))!;
     return toUserRecord(row);
   }
 
-  updateUser(
+  async updateUser(
     id: string,
     input: UpdateUserInput,
     actor: AuthUser,
     context: RequestContext,
-  ): UserRecord {
-    const current = this.db.get<UserRow>('SELECT * FROM users WHERE id = ?', id);
+  ): Promise<UserRecord> {
+    const current = await this.db.get<UserRow>('SELECT * FROM users WHERE id = ?', id);
     if (!current) throw notFound('User', 'USER_NOT_FOUND');
     if (current.id === actor.id && input.active === false) {
       throw badRequest('CANNOT_DEACTIVATE_SELF', 'You cannot deactivate your own account.');
@@ -110,7 +110,7 @@ export class AdminService {
       current.active === 1 &&
       ((input.role !== undefined && input.role !== 'SECRETARY') || input.active === false);
     if (losesSecretary) {
-      const others = this.db.get<{ count: number }>(
+      const others = await this.db.get<{ count: number }>(
         `SELECT COUNT(*) AS count FROM users
          WHERE role = 'SECRETARY' AND active = 1 AND id != ?`,
         id,
@@ -124,7 +124,7 @@ export class AdminService {
     const email = input.email !== undefined ? input.email || null : current.email;
     const role = input.role ?? current.role;
     const active = input.active === undefined ? current.active : input.active ? 1 : 0;
-    this.db.run(
+    await this.db.run(
       'UPDATE users SET name = ?, email = ?, role = ?, active = ?, updated_at = ? WHERE id = ?',
       name,
       email,
@@ -133,8 +133,8 @@ export class AdminService {
       nowIso(),
       id,
     );
-    if (!active) this.sessions.destroyForUser(id);
-    this.audit.log({
+    if (!active) await this.sessions.destroyForUser(id);
+    await this.audit.log({
       actor: { id: actor.id, name: actor.name },
       action: 'USER_UPDATED',
       entityType: 'user',
@@ -143,7 +143,7 @@ export class AdminService {
       after: { name, role, active: Boolean(active) },
       ...context,
     });
-    return toUserRecord(this.db.get<UserRow>('SELECT * FROM users WHERE id = ?', id)!);
+    return toUserRecord((await this.db.get<UserRow>('SELECT * FROM users WHERE id = ?', id))!);
   }
 
   async resetPassword(
@@ -152,17 +152,17 @@ export class AdminService {
     actor: AuthUser,
     context: RequestContext,
   ): Promise<UserRecord> {
-    const user = this.db.get<UserRow>('SELECT * FROM users WHERE id = ?', id);
+    const user = await this.db.get<UserRow>('SELECT * FROM users WHERE id = ?', id);
     if (!user) throw notFound('User', 'USER_NOT_FOUND');
     const hash = await this.passwords.hash(password);
-    this.db.run(
+    await this.db.run(
       'UPDATE users SET password_hash = ?, must_change_password = 1, updated_at = ? WHERE id = ?',
       hash,
       nowIso(),
       id,
     );
-    this.sessions.destroyForUser(id);
-    this.audit.log({
+    await this.sessions.destroyForUser(id);
+    await this.audit.log({
       actor: { id: actor.id, name: actor.name },
       action: 'USER_PASSWORD_RESET',
       entityType: 'user',
@@ -170,17 +170,17 @@ export class AdminService {
       after: { username: user.username },
       ...context,
     });
-    return toUserRecord(this.db.get<UserRow>('SELECT * FROM users WHERE id = ?', id)!);
+    return toUserRecord((await this.db.get<UserRow>('SELECT * FROM users WHERE id = ?', id))!);
   }
 
-  updateSettings(
+  async updateSettings(
     input: AppSettings,
     actor: AuthUser,
     context: RequestContext,
-  ): AppSettings {
-    const before = this.settings.get();
-    const updated = this.settings.update(input);
-    this.audit.log({
+  ): Promise<AppSettings> {
+    const before = await this.settings.get();
+    const updated = await this.settings.update(input);
+    await this.audit.log({
       actor: { id: actor.id, name: actor.name },
       action: 'SETTINGS_UPDATED',
       entityType: 'app_settings',
@@ -196,7 +196,7 @@ export class AdminService {
     return {
       appVersion: this.config.appVersion,
       environment: this.config.nodeEnv,
-      dbFile: this.config.dbPath,
+      dbFile: this.db.filePath,
       storageDir: this.config.storageDir,
       workerEnabled: this.config.workerEnabled,
       emailConfigured: this.config.emailConfigured,
@@ -206,9 +206,9 @@ export class AdminService {
     };
   }
 
-  permissionsFor(user: { role: Role }): Permission[] {
+  async permissionsFor(user: { role: Role }): Promise<Permission[]> {
     return permissionsForRole(user.role, {
-      allowStaffMaterialize: this.settings.get().allowStaffMaterialize,
+      allowStaffMaterialize: (await this.settings.get()).allowStaffMaterialize,
     });
   }
 }

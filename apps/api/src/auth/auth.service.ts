@@ -42,11 +42,11 @@ export class AuthService {
       );
     }
 
-    const row = this.db.get<UserRow>('SELECT * FROM users WHERE username = ?', normalized);
+    const row = await this.db.get<UserRow>('SELECT * FROM users WHERE username = ?', normalized);
 
     if (!row || !row.active) {
       this.registerFailure(key);
-      this.audit.log({
+      await this.audit.log({
         actor: { id: null, name: `anonymous:${normalized}` },
         action: 'AUTH_LOGIN_FAILED',
         entityType: 'user',
@@ -60,7 +60,7 @@ export class AuthService {
     const valid = await this.passwords.verify(row.password_hash, password);
     if (!valid) {
       this.registerFailure(key);
-      this.audit.log({
+      await this.audit.log({
         actor: { id: null, name: `anonymous:${normalized}` },
         action: 'AUTH_LOGIN_FAILED',
         entityType: 'user',
@@ -72,12 +72,12 @@ export class AuthService {
     }
 
     this.attempts.delete(key);
-    this.sessions.cleanupExpired();
+    await this.sessions.cleanupExpired();
     const timestamp = nowIso();
-    this.db.run('UPDATE users SET last_login_at = ?, updated_at = ? WHERE id = ?', timestamp, timestamp, row.id);
-    const token = this.sessions.create(row.id, context.ip ?? null, context.userAgent ?? null);
-    const user = toAuthUser(row, this.authz.permissionsFor(row));
-    this.audit.log({
+    await this.db.run('UPDATE users SET last_login_at = ?, updated_at = ? WHERE id = ?', timestamp, timestamp, row.id);
+    const token = await this.sessions.create(row.id, context.ip ?? null, context.userAgent ?? null);
+    const user = toAuthUser(row, await this.authz.permissionsFor(row));
+    await this.audit.log({
       actor: { id: row.id, name: row.name },
       action: 'AUTH_LOGIN',
       entityType: 'user',
@@ -88,9 +88,9 @@ export class AuthService {
     return { token, user };
   }
 
-  logout(token: string | null, user: AuthUser, context: RequestContext): void {
-    if (token) this.sessions.destroy(token);
-    this.audit.log({
+  async logout(token: string | null, user: AuthUser, context: RequestContext): Promise<void> {
+    if (token) await this.sessions.destroy(token);
+    await this.audit.log({
       actor: { id: user.id, name: user.name },
       action: 'AUTH_LOGOUT',
       entityType: 'user',
@@ -106,21 +106,21 @@ export class AuthService {
     sessionId: string | null,
     context: RequestContext,
   ): Promise<void> {
-    const row = this.db.get<UserRow>('SELECT * FROM users WHERE id = ?', user.id);
+    const row = await this.db.get<UserRow>('SELECT * FROM users WHERE id = ?', user.id);
     if (!row || !row.active) throw unauthorized('SESSION_EXPIRED', 'Your account is no longer active.');
     const valid = await this.passwords.verify(row.password_hash, currentPassword);
     if (!valid) throw unauthorized('INVALID_CREDENTIALS', 'The current password is incorrect.');
 
     const hash = await this.passwords.hash(newPassword);
     const timestamp = nowIso();
-    this.db.run(
+    await this.db.run(
       'UPDATE users SET password_hash = ?, must_change_password = 0, updated_at = ? WHERE id = ?',
       hash,
       timestamp,
       user.id,
     );
-    this.sessions.destroyForUser(user.id, sessionId ?? undefined);
-    this.audit.log({
+    await this.sessions.destroyForUser(user.id, sessionId ?? undefined);
+    await this.audit.log({
       actor: { id: user.id, name: user.name },
       action: 'PASSWORD_CHANGED',
       entityType: 'user',

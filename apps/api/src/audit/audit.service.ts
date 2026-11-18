@@ -2,7 +2,11 @@ import { createHash } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import type { AuditEntry, AuditQuery, AuditVerification, Paginated } from '@vams/shared';
 import { DatabaseService } from '../db/database.service';
-import { nowIso } from '../common/time';
+import {
+  istDayEndUtcIso,
+  istDayStartUtcIso,
+  nowIso,
+} from '../common/time';
 
 export interface AuditActor {
   id: string | null;
@@ -59,47 +63,53 @@ function parseJson(value: string | null): unknown {
 export class AuditService {
   constructor(@Inject(DatabaseService) private readonly db: DatabaseService) {}
 
-  log(input: AuditLogInput): void {
+  async log(input: AuditLogInput): Promise<void> {
     const id = crypto.randomUUID();
     const createdAt = nowIso();
     const beforeJson = stableJson(input.before);
     const afterJson = stableJson(input.after);
-    const previous = this.db.get<{ hash: string }>('SELECT hash FROM audit_log ORDER BY seq DESC LIMIT 1');
-    const prevHash = previous?.hash ?? 'GENESIS';
-    const hash = this.hashRow({
-      prevHash,
-      id,
-      actorId: input.actor.id,
-      actorName: input.actor.name,
-      action: input.action,
-      entityType: input.entityType,
-      entityId: input.entityId ?? null,
-      beforeJson,
-      afterJson,
-      createdAt,
+
+    await this.db.transaction(async () => {
+      await this.db.lockAuditChain();
+      const previous = await this.db.get<{ hash: string }>(
+        'SELECT hash FROM audit_log ORDER BY seq DESC LIMIT 1',
+      );
+      const prevHash = previous?.hash ?? 'GENESIS';
+      const chainedHash = this.hashRow({
+        prevHash,
+        id,
+        actorId: input.actor.id,
+        actorName: input.actor.name,
+        action: input.action,
+        entityType: input.entityType,
+        entityId: input.entityId ?? null,
+        beforeJson,
+        afterJson,
+        createdAt,
+      });
+      await this.db.run(
+        `INSERT INTO audit_log
+         (id, actor_id, actor_name, action, entity_type, entity_id, before_json, after_json, ip, user_agent, request_id, created_at, prev_hash, hash)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        id,
+        input.actor.id,
+        input.actor.name,
+        input.action,
+        input.entityType,
+        input.entityId ?? null,
+        beforeJson,
+        afterJson,
+        input.ip ?? null,
+        input.userAgent ?? null,
+        input.requestId ?? null,
+        createdAt,
+        prevHash,
+        chainedHash,
+      );
     });
-    this.db.run(
-      `INSERT INTO audit_log
-       (id, actor_id, actor_name, action, entity_type, entity_id, before_json, after_json, ip, user_agent, request_id, created_at, prev_hash, hash)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      id,
-      input.actor.id,
-      input.actor.name,
-      input.action,
-      input.entityType,
-      input.entityId ?? null,
-      beforeJson,
-      afterJson,
-      input.ip ?? null,
-      input.userAgent ?? null,
-      input.requestId ?? null,
-      createdAt,
-      prevHash,
-      hash,
-    );
   }
 
-  list(query: AuditQuery): Paginated<AuditEntry> {
+  async list(query: AuditQuery): Promise<Paginated<AuditEntry>> {
     const where: string[] = [];
     const params: Array<string | number> = [];
     if (query.actor) {
@@ -119,18 +129,21 @@ export class AuditService {
       params.push(query.entityId);
     }
     if (query.from) {
-      where.push("date(created_at, '+5 hours', '+30 minutes') >= ?");
-      params.push(query.from);
+      where.push('created_at >= ?');
+      params.push(istDayStartUtcIso(query.from));
     }
     if (query.to) {
-      where.push("date(created_at, '+5 hours', '+30 minutes') <= ?");
-      params.push(query.to);
+      where.push('created_at < ?');
+      params.push(istDayEndUtcIso(query.to));
     }
     const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
-    const totalRow = this.db.get<{ total: number }>(`SELECT COUNT(*) AS total FROM audit_log ${clause}`, ...params);
+    const totalRow = await this.db.get<{ total: number }>(
+      `SELECT COUNT(*) AS total FROM audit_log ${clause}`,
+      ...params,
+    );
     const total = Number(totalRow?.total ?? 0);
     const offset = (query.page - 1) * query.pageSize;
-    const rows = this.db.all<AuditRow>(
+    const rows = await this.db.all<AuditRow>(
       `SELECT * FROM audit_log ${clause} ORDER BY seq DESC LIMIT ? OFFSET ?`,
       ...params,
       query.pageSize,
@@ -145,8 +158,8 @@ export class AuditService {
     };
   }
 
-  forEntity(entityType: string, entityId: string, limit = 50): AuditEntry[] {
-    const rows = this.db.all<AuditRow>(
+  async forEntity(entityType: string, entityId: string, limit = 50): Promise<AuditEntry[]> {
+    const rows = await this.db.all<AuditRow>(
       'SELECT * FROM audit_log WHERE entity_type = ? AND entity_id = ? ORDER BY seq DESC LIMIT ?',
       entityType,
       entityId,
@@ -155,8 +168,8 @@ export class AuditService {
     return rows.map((row) => this.toEntry(row));
   }
 
-  verify(): AuditVerification {
-    const rows = this.db.all<AuditRow>('SELECT * FROM audit_log ORDER BY seq ASC');
+  async verify(): Promise<AuditVerification> {
+    const rows = await this.db.all<AuditRow>('SELECT * FROM audit_log ORDER BY seq ASC');
     let prevHash = 'GENESIS';
     let checked = 0;
     for (const row of rows) {

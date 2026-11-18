@@ -36,6 +36,7 @@ export interface AppConfig {
   port: number;
   nodeEnv: string;
   isProd: boolean;
+  databaseUrl: string;
   dbPath: string;
   storageDir: string;
   webDist: string;
@@ -137,6 +138,7 @@ export function loadConfig(): AppConfig {
     port: numberFrom(env.PORT, 4000),
     nodeEnv,
     isProd,
+    databaseUrl: env.DATABASE_URL?.trim() ?? '',
     dbPath,
     storageDir,
     webDist: path.join(repoRoot, 'apps', 'web', 'dist'),

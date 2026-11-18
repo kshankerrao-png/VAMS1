@@ -11,15 +11,17 @@ import { SettingsService } from '../settings/settings.module';
 export class AuthzService {
   constructor(@Inject(SettingsService) private readonly settings: SettingsService) {}
 
-  permissionsFor(user: { role: Role }): Permission[] {
+  async permissionsFor(user: { role: Role }): Promise<Permission[]> {
+    const settings = await this.settings.get();
     return permissionsForRole(user.role, {
-      allowStaffMaterialize: this.settings.get().allowStaffMaterialize,
+      allowStaffMaterialize: settings.allowStaffMaterialize,
     });
   }
 
-  hasPermission(user: { role: Role }, permission: Permission): boolean {
+  async hasPermission(user: { role: Role }, permission: Permission): Promise<boolean> {
+    const settings = await this.settings.get();
     return sharedHasPermission(user, permission, {
-      allowStaffMaterialize: this.settings.get().allowStaffMaterialize,
+      allowStaffMaterialize: settings.allowStaffMaterialize,
     });
   }
 }

@@ -195,7 +195,7 @@ describe('review, scheduling and notifications', () => {
     expect(replay.body.id).toBe(requestId);
     expect(replay.body.notifications).toHaveLength(2);
 
-    const count = harness.db.get<{ count: number }>(
+    const count = await harness.db.get<{ count: number }>(
       'SELECT COUNT(*) AS count FROM notifications WHERE request_id = ?',
       requestId,
     );
@@ -238,7 +238,7 @@ describe('review, scheduling and notifications', () => {
     expect(csv.status).toBe(200);
     expect(csv.headers['content-type']).toContain('text/csv');
     expect(csv.text).toContain(reference);
-    const exportEntry = harness.db.get<{ count: number }>(
+    const exportEntry = await harness.db.get<{ count: number }>(
       "SELECT COUNT(*) AS count FROM audit_log WHERE action = 'EXPORT_GENERATED'",
     );
     expect(Number(exportEntry?.count)).toBeGreaterThan(0);
@@ -276,11 +276,11 @@ describe('audit log integrity', () => {
     expect(response.body.checked).toBeGreaterThan(0);
   });
 
-  it('refuses updates and deletes at the database level', () => {
-    expect(() =>
+  it('refuses updates and deletes at the database level', async () => {
+    await expect(
       harness.db.run("UPDATE audit_log SET actor_name = 'tampered' WHERE seq = 1"),
-    ).toThrow();
-    expect(() => harness.db.run('DELETE FROM audit_log WHERE seq = 1')).toThrow();
+    ).rejects.toThrow();
+    await expect(harness.db.run('DELETE FROM audit_log WHERE seq = 1')).rejects.toThrow();
   });
 
   it('filters audit entries by action', async () => {
@@ -293,7 +293,7 @@ describe('audit log integrity', () => {
 
 describe('notifications management', () => {
   it('exposes notification status and supports resend for a failed notification', async () => {
-    const approved = harness.db.get<{ id: string }>(
+    const approved = await harness.db.get<{ id: string }>(
       "SELECT id FROM appointment_requests WHERE status = 'APPROVED' LIMIT 1",
     );
     expect(approved).toBeTruthy();

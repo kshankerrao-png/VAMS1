@@ -26,8 +26,8 @@ export class AdminController {
   ) {}
 
   @Get('users')
-  users() {
-    return { items: this.admin.listUsers() };
+  async users() {
+    return { items: await this.admin.listUsers() };
   }
 
   @Post('users')
@@ -63,10 +63,12 @@ export class AdminController {
   }
 
   @Get('templates')
-  templatesList() {
-    return {
-      items: [this.templates.get('EMAIL'), this.templates.get('WHATSAPP')],
-    };
+  async templatesList() {
+    const [email, whatsapp] = await Promise.all([
+      this.templates.get('EMAIL'),
+      this.templates.get('WHATSAPP'),
+    ]);
+    return { items: [email, whatsapp] };
   }
 
   @Put('templates/:channel')

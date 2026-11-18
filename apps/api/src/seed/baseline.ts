@@ -28,12 +28,12 @@ export async function ensureBaseline(
   const timestamp = nowIso();
 
   for (const template of DEFAULT_TEMPLATES) {
-    const existing = db.get<{ id: string }>(
+    const existing = await db.get<{ id: string }>(
       'SELECT id FROM notification_templates WHERE channel = ?',
       template.channel,
     );
     if (!existing) {
-      db.run(
+      await db.run(
         `INSERT INTO notification_templates (id, channel, subject, body, version, active, updated_by, updated_at)
          VALUES (?, ?, ?, ?, 1, 1, NULL, ?)`,
         randomUUID(),
@@ -46,9 +46,9 @@ export async function ensureBaseline(
   }
 
   for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
-    const existing = db.get<{ key: string }>('SELECT key FROM app_settings WHERE key = ?', key);
+    const existing = await db.get<{ key: string }>('SELECT key FROM app_settings WHERE key = ?', key);
     if (!existing) {
-      db.run(
+      await db.run(
         'INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, ?)',
         key,
         JSON.stringify(value),
@@ -57,11 +57,11 @@ export async function ensureBaseline(
     }
   }
 
-  const count = db.get<{ count: number }>('SELECT COUNT(*) AS count FROM users');
+  const count = await db.get<{ count: number }>('SELECT COUNT(*) AS count FROM users');
   if (Number(count?.count ?? 0) === 0) {
     for (const account of DEMO_ACCOUNTS) {
       const hash = await passwords.hash(account.password);
-      db.run(
+      await db.run(
         `INSERT INTO users
          (id, username, name, email, role, password_hash, active, must_change_password, created_at, updated_at)
          VALUES (?, ?, ?, NULL, ?, ?, 1, 0, ?, ?)`,
@@ -74,7 +74,7 @@ export async function ensureBaseline(
         timestamp,
       );
     }
-    audit.log({
+    await audit.log({
       actor: { id: null, name: 'System (bootstrap)' },
       action: 'SEED_DATA',
       entityType: 'user',

@@ -25,9 +25,14 @@ export async function createTestApp(): Promise<TestHarness> {
   process.env.DB_PATH = path.join(dir, 'vams.db');
   process.env.WORKER_ENABLED = 'false';
   process.env.ALLOW_NOTIFICATION_SIMULATION = 'true';
+  process.env.DATABASE_URL = '';
   process.env.SMTP_HOST = '';
   process.env.WHATSAPP_PHONE_NUMBER_ID = '';
   process.env.WHATSAPP_TOKEN = '';
+  process.env.TWILIO_ACCOUNT_SID = '';
+  process.env.TWILIO_AUTH_TOKEN = '';
+  process.env.TWILIO_WHATSAPP_FROM = '';
+  process.env.TWILIO_CONTENT_SID = '';
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
   const app = moduleRef.createNestApplication({ rawBody: true });

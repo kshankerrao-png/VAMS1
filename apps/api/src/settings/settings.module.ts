@@ -21,8 +21,8 @@ const SETTING_KEYS: Array<keyof AppSettings> = [
 export class SettingsService {
   constructor(@Inject(DatabaseService) private readonly db: DatabaseService) {}
 
-  get(): AppSettings {
-    const rows = this.db.all<{ key: string; value: string }>('SELECT key, value FROM app_settings');
+  async get(): Promise<AppSettings> {
+    const rows = await this.db.all<{ key: string; value: string }>('SELECT key, value FROM app_settings');
     const values = new Map(rows.map((row) => [row.key, row.value]));
     const read = <T>(key: keyof AppSettings, fallback: T): T => {
       const raw = values.get(key);
@@ -41,11 +41,11 @@ export class SettingsService {
     };
   }
 
-  update(patch: Partial<AppSettings>): AppSettings {
+  async update(patch: Partial<AppSettings>): Promise<AppSettings> {
     const timestamp = nowIso();
-    const next = { ...this.get(), ...patch };
+    const next = { ...(await this.get()), ...patch };
     for (const key of SETTING_KEYS) {
-      this.db.run(
+      await this.db.run(
         `INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, ?)
          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
         key,
