@@ -7,6 +7,7 @@ import { Pool, types, type PoolClient } from 'pg';
 import { APP_CONFIG, AppConfig } from '../config';
 import { SCHEMA_SQL } from './schema';
 import { POSTGRES_SCHEMA_SQL } from './postgres-schema';
+import { createPgPool } from './pg';
 
 export type SqlValue = string | number | null | bigint;
 
@@ -110,11 +111,8 @@ export class DatabaseService implements OnModuleDestroy {
 
   private async initialize(): Promise<void> {
     if (this.config.databaseUrl) {
-      this.pool = new Pool({
-        connectionString: this.config.databaseUrl,
+      this.pool = createPgPool(this.config.databaseUrl, {
         max: Number(process.env.PG_POOL_MAX ?? 5),
-        idleTimeoutMillis: 30_000,
-        connectionTimeoutMillis: 15_000,
       });
       await this.pool.query(POSTGRES_SCHEMA_SQL);
       return;

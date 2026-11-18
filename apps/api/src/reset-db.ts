@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { Pool } from 'pg';
 import { loadConfig } from './config';
 import { POSTGRES_SCHEMA_SQL } from './db/postgres-schema';
+import { createPgPool } from './db/pg';
 import { runDemoSeed } from './seed/demo';
 
 const DROP_SQL = `DROP TABLE IF EXISTS
@@ -18,7 +18,7 @@ async function main(): Promise<void> {
       process.exitCode = 1;
       return;
     }
-    const pool = new Pool({ connectionString: config.databaseUrl, max: 1 });
+    const pool = createPgPool(config.databaseUrl, { max: 1 });
     try {
       await pool.query(DROP_SQL);
       await pool.query(POSTGRES_SCHEMA_SQL);

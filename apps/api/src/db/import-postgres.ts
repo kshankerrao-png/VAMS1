@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
-import { Pool } from 'pg';
 import { loadConfig } from '../config';
 import { POSTGRES_SCHEMA_SQL } from './postgres-schema';
+import { createPgPool } from './pg';
 
 const TABLES = [
   'users',
@@ -34,7 +34,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  const pool = new Pool({ connectionString: config.databaseUrl, max: 1 });
+  const pool = createPgPool(config.databaseUrl, { max: 1 });
   try {
     await pool.query(POSTGRES_SCHEMA_SQL);
 
