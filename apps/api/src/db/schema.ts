@@ -1,0 +1,162 @@
+﻿export const SCHEMA_SQL = `
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  username TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  email TEXT,
+  role TEXT NOT NULL CHECK (role IN ('PESHI_STAFF', 'SECRETARY', 'ADMIN')),
+  password_hash TEXT NOT NULL,
+  active INTEGER NOT NULL DEFAULT 1,
+  must_change_password INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  last_login_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  last_seen_at TEXT NOT NULL,
+  ip TEXT,
+  user_agent TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+
+CREATE TABLE IF NOT EXISTS visitor_profiles (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  name_normalized TEXT NOT NULL,
+  designation TEXT,
+  organization TEXT,
+  address TEXT,
+  mobile TEXT NOT NULL,
+  email TEXT NOT NULL,
+  email_normalized TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_visitors_mobile ON visitor_profiles(mobile);
+CREATE INDEX IF NOT EXISTS idx_visitors_email ON visitor_profiles(email_normalized);
+CREATE INDEX IF NOT EXISTS idx_visitors_name ON visitor_profiles(name_normalized);
+CREATE INDEX IF NOT EXISTS idx_visitors_org ON visitor_profiles(organization);
+
+CREATE TABLE IF NOT EXISTS appointment_requests (
+  id TEXT PRIMARY KEY,
+  reference TEXT NOT NULL UNIQUE,
+  visitor_id TEXT NOT NULL REFERENCES visitor_profiles(id),
+  purpose TEXT NOT NULL,
+  accompanying_count INTEGER NOT NULL DEFAULT 0,
+  accompanying_names TEXT,
+  documents_reference TEXT,
+  remarks TEXT,
+  request_date TEXT NOT NULL,
+  request_day TEXT NOT NULL,
+  entered_by TEXT NOT NULL REFERENCES users(id),
+  status TEXT NOT NULL CHECK (status IN ('PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'MATERIALIZED')),
+  assigned_date TEXT,
+  assigned_time TEXT,
+  decided_by TEXT REFERENCES users(id),
+  decision_at TEXT,
+  decision_day TEXT,
+  decision_note TEXT,
+  rejection_reason TEXT,
+  materialized_at TEXT,
+  time_in TEXT,
+  version INTEGER NOT NULL DEFAULT 1,
+  idempotency_key TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_requests_visitor ON appointment_requests(visitor_id);
+CREATE INDEX IF NOT EXISTS idx_requests_status ON appointment_requests(status);
+CREATE INDEX IF NOT EXISTS idx_requests_request_day ON appointment_requests(request_day);
+CREATE INDEX IF NOT EXISTS idx_requests_assigned ON appointment_requests(assigned_date, assigned_time);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_requests_idempotency ON appointment_requests(idempotency_key) WHERE idempotency_key IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id TEXT PRIMARY KEY,
+  request_id TEXT NOT NULL REFERENCES appointment_requests(id),
+  channel TEXT NOT NULL CHECK (channel IN ('EMAIL', 'WHATSAPP')),
+  recipient TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('QUEUED', 'SENT', 'DELIVERED', 'FAILED', 'SKIPPED')),
+  attempt INTEGER NOT NULL DEFAULT 0,
+  max_attempts INTEGER NOT NULL DEFAULT 3,
+  next_attempt_at TEXT,
+  provider_message_id TEXT,
+  error_message TEXT,
+  template_version INTEGER,
+  rendered_subject TEXT,
+  rendered_body TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  sent_at TEXT,
+  delivered_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_request ON notifications(request_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_due ON notifications(status, next_attempt_at);
+CREATE INDEX IF NOT EXISTS idx_notifications_provider ON notifications(provider_message_id);
+
+CREATE TABLE IF NOT EXISTS notification_templates (
+  id TEXT PRIMARY KEY,
+  channel TEXT NOT NULL UNIQUE,
+  subject TEXT,
+  body TEXT NOT NULL,
+  version INTEGER NOT NULL DEFAULT 1,
+  active INTEGER NOT NULL DEFAULT 1,
+  updated_by TEXT,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS audit_log (
+  seq INTEGER PRIMARY KEY AUTOINCREMENT,
+  id TEXT NOT NULL UNIQUE,
+  actor_id TEXT,
+  actor_name TEXT NOT NULL,
+  action TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT,
+  before_json TEXT,
+  after_json TEXT,
+  ip TEXT,
+  user_agent TEXT,
+  request_id TEXT,
+  created_at TEXT NOT NULL,
+  prev_hash TEXT NOT NULL,
+  hash TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_log(action);
+CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at);
+
+CREATE TRIGGER IF NOT EXISTS audit_log_no_update
+BEFORE UPDATE ON audit_log
+BEGIN
+  SELECT RAISE(ABORT, 'audit log is append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS audit_log_no_delete
+BEFORE DELETE ON audit_log
+BEGIN
+  SELECT RAISE(ABORT, 'audit log is append-only');
+END;
+
+CREATE TABLE IF NOT EXISTS idempotency_keys (
+  key TEXT PRIMARY KEY,
+  scope TEXT NOT NULL,
+  response_json TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS counters (
+  name TEXT PRIMARY KEY,
+  value INTEGER NOT NULL
+);
+`;

@@ -1,0 +1,25 @@
+{
+  "name": "vams",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Visitors Appointment Management System — Transport, Roads & Buildings Department",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "setup": "npm install && npm run build:shared && npm run db:reset",
+    "build:shared": "npm run build -w @vams/shared",
+    "build": "npm run build:shared && npm run build -w @vams/api && npm run build -w @vams/web",
+    "dev:api": "npm run dev -w @vams/api",
+    "dev:web": "npm run dev -w @vams/web",
+    "start": "node apps/api/dist/main.js",
+    "seed": "npm run seed -w @vams/api",
+    "db:reset": "npm run db:reset -w @vams/api",
+    "test": "npm run test -w @vams/shared && npm run test -w @vams/api",
+    "typecheck": "npm run typecheck -w @vams/shared && npm run typecheck -w @vams/api && npm run typecheck -w @vams/web"
+  }
+}
