@@ -328,6 +328,10 @@ export class NotificationService {
         subject,
         body,
         reference: context.reference,
+        templateVariables:
+          row.channel === 'WHATSAPP'
+            ? { '1': variables.assigned_date, '2': variables.assigned_time }
+            : undefined,
       });
       const timestamp = nowIso();
       const status: NotificationStatus = result.deliveredImmediately ? 'DELIVERED' : 'SENT';

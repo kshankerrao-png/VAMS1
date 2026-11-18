@@ -10,6 +10,7 @@ export interface OutboundMessage {
   subject?: string;
   body: string;
   reference: string;
+  templateVariables?: Record<string, string>;
 }
 
 export interface SendResult {

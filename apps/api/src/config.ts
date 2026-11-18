@@ -28,6 +28,7 @@ export interface TwilioConfig {
   accountSid: string;
   authToken: string;
   from: string;
+  contentSid: string;
 }
 
 export interface AppConfig {
@@ -122,6 +123,7 @@ export function loadConfig(): AppConfig {
     accountSid: env.TWILIO_ACCOUNT_SID ?? '',
     authToken: env.TWILIO_AUTH_TOKEN ?? '',
     from: env.TWILIO_WHATSAPP_FROM ?? '',
+    contentSid: env.TWILIO_CONTENT_SID ?? '',
   };
   const twilioConfigured = Boolean(twilio.accountSid && twilio.authToken && twilio.from);
   const whatsappCloudConfigured = Boolean(whatsapp.phoneNumberId && whatsapp.token);

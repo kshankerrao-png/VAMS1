@@ -12,11 +12,19 @@ async function main(): Promise<void> {
   }
 
   const config = loadConfig();
+  const now = new Date();
   const message = {
     to: recipient,
     subject: 'VAMS test notification',
-    body: `VAMS test message sent at ${new Date().toISOString()}. If you received this, outbound ${channel} is configured.`,
+    body: `VAMS test message sent at ${now.toISOString()}. If you received this, outbound ${channel} is configured.`,
     reference: 'TEST-NOTIFICATION',
+    templateVariables:
+      channel === 'whatsapp'
+        ? {
+            '1': now.toLocaleDateString('en-IN'),
+            '2': now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+          }
+        : undefined,
   };
 
   const adapter = channel === 'email' ? new EmailAdapter(config) : new WhatsappAdapter(config);

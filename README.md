@@ -172,6 +172,7 @@ Copy `.env.example` to `.env` at the repository root (or `apps/api/.env`) and ad
 | `WHATSAPP_VERIFY_TOKEN` / `WHATSAPP_APP_SECRET` | unset | Webhook verification and signature checking |
 | `WHATSAPP_TEMPLATE_NAME` / `WHATSAPP_TEMPLATE_LANG` | unset | Send via an approved utility template instead of free text |
 | `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_WHATSAPP_FROM` | unset | Twilio WhatsApp (takes precedence over the Cloud API) |
+| `TWILIO_CONTENT_SID` | unset | Pre-approved `HX…` template required on Twilio trial/sandbox accounts |
 | `WHATSAPP_DEFAULT_COUNTRY_CODE` | `91` | Country code added to 10-digit mobile numbers |
 | `SESSION_IDLE_MINUTES` / `SESSION_ABSOLUTE_HOURS` | `30` / `8` | Session policy |
 | `APP_BASE_URL` | `http://localhost:4000` | Public base URL |

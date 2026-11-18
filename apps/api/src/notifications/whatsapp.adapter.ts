@@ -69,13 +69,20 @@ export class WhatsappAdapter {
   }
 
   private async sendViaTwilio(message: OutboundMessage): Promise<SendResult> {
-    const { accountSid, authToken, from } = this.config.twilio;
+    const { accountSid, authToken, from, contentSid } = this.config.twilio;
     const endpoint = `https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(accountSid)}/Messages.json`;
     const payload = new URLSearchParams({
       To: `whatsapp:+${this.e164(message.to)}`,
       From: whatsappAddress(from),
-      Body: message.body,
     });
+    if (contentSid) {
+      payload.set('ContentSid', contentSid);
+      if (message.templateVariables) {
+        payload.set('ContentVariables', JSON.stringify(message.templateVariables));
+      }
+    } else {
+      payload.set('Body', message.body);
+    }
     const authorization = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
 
     const response = await fetch(endpoint, {
