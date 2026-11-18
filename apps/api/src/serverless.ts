@@ -16,6 +16,12 @@ let handlerPromise: Promise<NodeHandler> | null = null;
 
 async function createHandler(): Promise<NodeHandler> {
   const config = loadConfig();
+  if (!config.databaseUrl) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      'VAMS: DATABASE_URL is not set on Vercel; data is stored in the ephemeral /tmp SQLite file and is lost between cold starts.',
+    );
+  }
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
     logger: ['error', 'warn'],

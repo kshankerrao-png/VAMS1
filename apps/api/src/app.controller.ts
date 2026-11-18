@@ -19,6 +19,7 @@ export class AppController {
       status: healthy ? 'ok' : 'degraded',
       time: nowIso(),
       version: this.config.appVersion,
+      databaseDriver: this.db.driver,
       services: {
         database: healthy ? 'ok' : 'error',
         email: this.config.emailConfigured ? 'configured' : 'simulated',
