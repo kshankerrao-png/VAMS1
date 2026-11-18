@@ -182,6 +182,13 @@ Copy `.env.example` to `.env` at the repository root (or `apps/api/.env`) and ad
 - WhatsApp/Meta template approval and business-number provisioning are external dependencies; run
   on Email-only until they are ready (the UI shows the channel state).
 
+**Vercel preview deployment**
+
+`vercel.json` builds the web bundle and runs the API as a single Vercel Function (`api/index.js`).
+On Vercel the SQLite database and notification outbox live in `/tmp`, so data (users, requests,
+sessions) is recreated on each cold start and is not shared between concurrent function instances.
+Use this only for a demo; run `npm start` or the Docker/PostgreSQL profile for persistent data.
+
 ---
 
 ## Scripts

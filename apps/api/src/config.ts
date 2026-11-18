@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import dotenv from 'dotenv';
 
@@ -76,14 +77,19 @@ export function loadConfig(): AppConfig {
   dotenv.config({ path: path.join(repoRoot, 'apps', 'api', '.env'), quiet: true });
 
   const env = process.env;
-  const nodeEnv = env.NODE_ENV ?? 'development';
+  const serverless = Boolean(env.VERCEL);
+  const nodeEnv = env.NODE_ENV ?? (serverless ? 'production' : 'development');
   const isProd = nodeEnv === 'production';
   const dbPath = env.DB_PATH
     ? path.resolve(repoRoot, env.DB_PATH)
-    : path.join(repoRoot, 'storage', 'vams.db');
+    : serverless
+      ? path.join(os.tmpdir(), 'vams.db')
+      : path.join(repoRoot, 'storage', 'vams.db');
   const storageDir = env.STORAGE_DIR
     ? path.resolve(repoRoot, env.STORAGE_DIR)
-    : path.dirname(dbPath);
+    : serverless
+      ? path.join(os.tmpdir(), 'vams-outbox')
+      : path.dirname(dbPath);
 
   const smtp: SmtpConfig = {
     host: env.SMTP_HOST ?? '',
@@ -117,10 +123,10 @@ export function loadConfig(): AppConfig {
     storageDir,
     webDist: path.join(repoRoot, 'apps', 'web', 'dist'),
     cookieName: 'vams_session',
-    cookieSecure: env.COOKIE_SECURE === 'true',
+    cookieSecure: env.COOKIE_SECURE ? env.COOKIE_SECURE === 'true' : serverless,
     sessionIdleMinutes: numberFrom(env.SESSION_IDLE_MINUTES, 30),
     sessionAbsoluteHours: numberFrom(env.SESSION_ABSOLUTE_HOURS, 8),
-    workerEnabled: env.WORKER_ENABLED !== 'false',
+    workerEnabled: env.WORKER_ENABLED ? env.WORKER_ENABLED !== 'false' : !serverless,
     workerIntervalMs: numberFrom(env.WORKER_INTERVAL_MS, 3000),
     allowSimulation,
     emailConfigured: Boolean(smtp.host),
