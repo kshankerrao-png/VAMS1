@@ -31,6 +31,10 @@ export class NotificationWorker implements OnModuleInit, OnModuleDestroy {
     setImmediate(() => void this.tick());
   }
 
+  get enabled(): boolean {
+    return this.config.workerEnabled;
+  }
+
   async drainAll(maxBatches = 20): Promise<void> {
     for (let index = 0; index < maxBatches; index += 1) {
       const processed = await this.notifications.processDue(20);

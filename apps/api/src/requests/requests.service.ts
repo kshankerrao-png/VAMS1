@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import {
   type AppointmentRequestDetail,
@@ -124,6 +124,8 @@ function csvCell(value: unknown): string {
 
 @Injectable()
 export class RequestsService {
+  private readonly logger = new Logger(RequestsService.name);
+
   constructor(
     @Inject(DatabaseService) private readonly db: DatabaseService,
     @Inject(AuditService) private readonly audit: AuditService,
@@ -471,8 +473,19 @@ export class RequestsService {
       return detail;
     });
 
-    this.worker.kick();
-    return result;
+    if (this.worker.enabled) {
+      this.worker.kick();
+      return result;
+    }
+
+    try {
+      await this.worker.drainAll(4);
+    } catch (error) {
+      this.logger.error(
+        `Inline notification dispatch failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+    return await this.detail(id);
   }
 
   async reject(
