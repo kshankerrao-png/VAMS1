@@ -5,6 +5,7 @@ import {
   CalendarClock,
   CalendarDays,
   CheckCircle2,
+  ChevronRight,
   ClipboardCheck,
   Clock3,
   Printer,
@@ -21,7 +22,7 @@ import type {
 import { STATUS_LABELS } from '@vams/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { api } from '../lib/api';
-import { formatDate, formatTime, istToday, timeAgo, truncate } from '../lib/format';
+import { addDays, formatDate, formatTime, istToday, timeAgo, truncate } from '../lib/format';
 import {
   Alert,
   Badge,
@@ -372,21 +373,40 @@ export function DashboardPage() {
             </div>
           </Card>
 
-          {can('report:read') && summary ? (
-            <SectionCard title="Next 7 days" description="Approved appointments by date." icon={CalendarClock}>
-              <div className="space-y-2">
-                {summary.upcoming.map((day) => (
-                  <div
+          <SectionCard
+            title="Next 7 days"
+            description="Approved appointments by date. Select a day to open it in the register."
+            icon={CalendarClock}
+            actions={
+              <Link
+                to={`/register?assignedFrom=${today}&assignedTo=${addDays(today, 6)}`}
+                className="text-xs font-semibold text-brand-700 hover:underline"
+              >
+                View all
+              </Link>
+            }
+            bodyClassName="p-0"
+          >
+            {statsQuery.isLoading ? (
+              <LoadingBlock />
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {(stats?.upcomingNextDays ?? []).map((day) => (
+                  <Link
                     key={day.date}
-                    className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2"
+                    to={`/register?assignedFrom=${day.date}&assignedTo=${day.date}`}
+                    className="flex items-center justify-between gap-3 px-4 py-2.5 transition hover:bg-slate-50 sm:px-5"
                   >
                     <span className="text-xs font-medium text-slate-600">{formatDate(day.date)}</span>
-                    <Badge tone={day.count > 0 ? 'blue' : 'slate'}>{day.count} booked</Badge>
-                  </div>
+                    <span className="flex items-center gap-2">
+                      <Badge tone={day.count > 0 ? 'blue' : 'slate'}>{day.count} booked</Badge>
+                      <ChevronRight className="size-3.5 text-slate-300" />
+                    </span>
+                  </Link>
                 ))}
               </div>
-            </SectionCard>
-          ) : null}
+            )}
+          </SectionCard>
 
           {summary ? (
             <SectionCard

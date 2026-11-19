@@ -207,6 +207,14 @@ describe('review, scheduling and notifications', () => {
     ]);
   });
 
+  it('returns seven upcoming appointment days for dashboard drill-down', async () => {
+    const response = await peshi.get('/api/requests/stats');
+    expect(response.status).toBe(200);
+    expect(response.body.upcomingNextDays).toHaveLength(7);
+    expect(response.body.upcomingNextDays[0]).toHaveProperty('date');
+    expect(response.body.upcomingNextDays[0]).toHaveProperty('count');
+  });
+
   it('filters the register by notification outcome', async () => {
     const delivered = await peshi.get('/api/requests?notificationStatus=DELIVERED&pageSize=50');
     expect(delivered.status).toBe(200);

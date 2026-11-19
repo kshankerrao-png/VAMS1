@@ -25,6 +25,7 @@ import {
 } from '../common/errors';
 import type { RequestContext } from '../common/decorators';
 import {
+  addDays,
   currentIstTime,
   daysSince,
   istDateTimeToEpoch,
@@ -260,6 +261,24 @@ export class RequestsService {
     const pending = await this.db.get<{ count: number }>(
       `SELECT COUNT(*) AS count FROM notifications WHERE status IN ('QUEUED', 'SENT')`,
     );
+    const upcomingStart = today;
+    const upcomingEnd = addDays(today, 6);
+    const upcomingRows = await this.db.all<{ assigned_date: string; count: number }>(
+      `SELECT assigned_date, COUNT(*) AS count
+       FROM appointment_requests
+       WHERE assigned_date >= ? AND assigned_date <= ?
+         AND status IN ('APPROVED', 'MATERIALIZED')
+       GROUP BY assigned_date`,
+      upcomingStart,
+      upcomingEnd,
+    );
+    const upcomingCounts = new Map(
+      upcomingRows.map((row) => [row.assigned_date, Number(row.count)]),
+    );
+    const upcomingNextDays = Array.from({ length: 7 }, (_value, index) => {
+      const date = addDays(today, index);
+      return { date, count: upcomingCounts.get(date) ?? 0 };
+    });
     return {
       byStatus,
       totalRequests: total,
@@ -267,6 +286,7 @@ export class RequestsService {
       pendingOldestDays: oldest?.oldest ? daysSince(oldest.oldest) : 0,
       notificationFailures: Number(failures?.count ?? 0),
       notificationsPending: Number(pending?.count ?? 0),
+      upcomingNextDays,
     };
   }
 

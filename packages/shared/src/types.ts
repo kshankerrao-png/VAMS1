@@ -154,6 +154,7 @@ export interface DashboardStats {
   pendingOldestDays: number;
   notificationFailures: number;
   notificationsPending: number;
+  upcomingNextDays: Array<{ date: string; count: number }>;
 }
 
 export interface ReportDay {
