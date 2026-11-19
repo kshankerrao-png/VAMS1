@@ -88,7 +88,7 @@ export function Layout() {
         <div className="min-w-0">
           <p className="truncate text-base font-bold text-white">VAMS</p>
           <p className="truncate text-[10px] uppercase tracking-[0.14em] text-brand-200">
-            Transport, Roads &amp; Buildings
+            T,R&amp;B Department
           </p>
         </div>
       </div>

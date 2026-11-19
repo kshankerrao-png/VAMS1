@@ -130,6 +130,9 @@ export function LoginPage() {
           </div>
 
           <h2 className="text-xl font-bold tracking-tight text-slate-900">Sign in to VAMS</h2>
+          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-700 lg:hidden">
+            Visitors Appointment Management System
+          </p>
           <p className="mt-1 text-sm text-slate-500">
             Use your department-issued credentials to continue.
           </p>
