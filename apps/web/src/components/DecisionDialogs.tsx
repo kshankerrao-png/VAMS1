@@ -103,10 +103,11 @@ export function ApproveDialog({
       description={`${request.reference} · ${request.visitorName}`}
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" className="flex-1 sm:flex-none" onClick={onClose}>
             Cancel
           </Button>
           <Button
+            className="flex-1 sm:flex-none"
             onClick={() => mutation.mutate()}
             loading={mutation.isPending}
             disabled={!date || !time || inPast || slotFull}
@@ -124,7 +125,7 @@ export function ApproveDialog({
           <p>
             <span className="font-semibold text-slate-700">Purpose:</span> {request.purpose}
           </p>
-          <p className="mt-1 text-[11px] text-slate-500">
+          <p className="mt-1 break-all text-[11px] text-slate-500">
             Confirmations will be sent to {request.visitorEmail} and {request.visitorMobile}.
           </p>
         </div>

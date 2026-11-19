@@ -422,7 +422,7 @@ export function RequestDetailPage() {
           </SectionCard>
         </div>
 
-        <aside className="space-y-5">
+        <aside className="order-first space-y-5 xl:order-none">
           <SectionCard title="Actions" icon={CheckCircle2}>
             <div className="space-y-2">
               {canDecide ? (

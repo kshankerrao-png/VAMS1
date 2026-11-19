@@ -78,8 +78,8 @@ export function QueuePage() {
         ) : (
           <div className="divide-y divide-slate-100">
             {data.items.map((row) => (
-              <div key={row.id} className="px-5 py-4">
-                <div className="flex flex-wrap items-start justify-between gap-4">
+              <div key={row.id} className="px-4 py-4 sm:px-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <Link
@@ -99,34 +99,38 @@ export function QueuePage() {
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-400">
                       <span className="inline-flex items-center gap-1">
-                        <Phone className="size-3" />
-                        {row.visitorMobile}
+                        <Phone className="size-3 shrink-0" />
+                        <span className="truncate">{row.visitorMobile}</span>
                       </span>
-                      <span className="inline-flex items-center gap-1">
-                        <Mail className="size-3" />
-                        {row.visitorEmail}
+                      <span className="inline-flex min-w-0 max-w-full items-center gap-1">
+                        <Mail className="size-3 shrink-0" />
+                        <span className="break-all">{row.visitorEmail}</span>
                       </span>
                       <span>Entered by {row.enteredByName}</span>
                       <span className="inline-flex items-center gap-1">
-                        <Clock3 className="size-3" />
+                        <Clock3 className="size-3 shrink-0" />
                         {timeAgo(row.requestDate)}
                       </span>
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <Link to={`/requests/${row.id}`}>
-                      <Button variant="outline" size="sm">
+                  <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:shrink-0 sm:items-center">
+                    <Link to={`/requests/${row.id}`} className="min-w-0">
+                      <Button variant="outline" size="sm" className="w-full sm:w-auto">
                         Review
                       </Button>
                     </Link>
-                    <Button size="sm" onClick={() => setApproveTarget(row)}>
+                    <Button
+                      size="sm"
+                      className="w-full sm:w-auto"
+                      onClick={() => setApproveTarget(row)}
+                    >
                       <CheckCircle2 className="size-3.5" />
                       Approve
                     </Button>
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="text-rose-600 hover:bg-rose-50"
+                      className="w-full text-rose-600 hover:bg-rose-50 sm:w-auto"
                       onClick={() => setRejectTarget(row)}
                     >
                       <XCircle className="size-3.5" />
