@@ -208,6 +208,9 @@ export class DatabaseService implements OnModuleDestroy {
       const client = await this.pool!.connect();
       try {
         await client.query('BEGIN');
+        await client.query(
+          "SET LOCAL lock_timeout = '5000'; SET LOCAL idle_in_transaction_session_timeout = '15000';",
+        );
         const result = await this.pgTransaction.run(client, work);
         await client.query('COMMIT');
         return result;
