@@ -762,6 +762,12 @@ export class RequestsService {
         params.push(...statuses);
       }
     }
+    if (query.notificationStatus) {
+      where.push(
+        'EXISTS (SELECT 1 FROM notifications n WHERE n.request_id = r.id AND n.status = ?)',
+      );
+      params.push(query.notificationStatus);
+    }
     if (query.from) {
       where.push('r.request_day >= ?');
       params.push(query.from);

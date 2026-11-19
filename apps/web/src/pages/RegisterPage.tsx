@@ -162,7 +162,7 @@ export function RegisterPage() {
             });
           }}
         >
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_170px_170px_auto]">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_170px_170px_auto]">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
               <input
@@ -341,6 +341,24 @@ export function RegisterPage() {
               {stats ? <span className="ml-1 tabular-nums opacity-70">{stats.byStatus[status]}</span> : null}
             </button>
           ))}
+          {searchParams.get('notificationStatus') ? (
+            <button
+              type="button"
+              onClick={() => update({ notificationStatus: '' })}
+              className="rounded-full bg-rose-50 px-3 py-1 text-[11px] font-semibold text-rose-700 ring-1 ring-inset ring-rose-200 hover:bg-rose-100"
+            >
+              Notification failures · clear
+            </button>
+          ) : null}
+          {searchParams.get('assignedFrom') || searchParams.get('assignedTo') ? (
+            <button
+              type="button"
+              onClick={() => update({ assignedFrom: '', assignedTo: '' })}
+              className="rounded-full bg-sky-50 px-3 py-1 text-[11px] font-semibold text-sky-700 ring-1 ring-inset ring-sky-200 hover:bg-sky-100"
+            >
+              Appointment date filter · clear
+            </button>
+          ) : null}
         </div>
       </SectionCard>
 
@@ -373,7 +391,7 @@ export function RegisterPage() {
             />
           ) : (
             <div className="overflow-x-auto">
-              <table className="table-base">
+              <table className="table-base min-w-[920px]">
                 <thead>
                   <tr>
                     <th>Reference</th>

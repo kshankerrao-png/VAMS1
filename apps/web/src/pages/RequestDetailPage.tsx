@@ -279,7 +279,7 @@ export function RequestDetailPage() {
               />
             ) : (
               <div className="overflow-x-auto">
-                <table className="table-base">
+                <table className="table-base min-w-[600px]">
                   <thead>
                     <tr>
                       <th>Channel</th>
@@ -328,7 +328,7 @@ export function RequestDetailPage() {
               <EmptyState title="First request from this visitor" />
             ) : (
               <div className="overflow-x-auto">
-                <table className="table-base">
+                <table className="table-base min-w-[600px]">
                   <thead>
                     <tr>
                       <th>Reference</th>

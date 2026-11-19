@@ -45,14 +45,18 @@ export function LoginPage() {
       <section className="relative hidden overflow-hidden bg-brand-900 px-12 py-12 text-white lg:flex lg:flex-col">
         <div className="absolute -right-24 -top-24 size-80 rounded-full bg-brand-700/40 blur-2xl" />
         <div className="absolute -bottom-28 -left-16 size-80 rounded-full bg-brand-600/20 blur-3xl" />
-        <div className="relative flex items-center gap-3">
-          <span className="flex size-12 items-center justify-center rounded-2xl bg-white/10 text-xs font-black tracking-wider ring-1 ring-white/20">
-            T,R&amp;B
-          </span>
+        <div className="relative flex items-center gap-4">
+          <img
+            src="/logo.png"
+            alt="Government of Telangana emblem"
+            className="size-16 shrink-0 object-contain"
+          />
           <div>
-            <p className="text-sm font-bold">Transport, Roads &amp; Buildings Department</p>
-            <p className="text-[11px] uppercase tracking-[0.18em] text-brand-300">
-              Government of India · Office of the Secretary
+            <p className="text-lg font-bold leading-snug sm:text-xl">
+              Transport, Roads &amp; Buildings Department
+            </p>
+            <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-brand-300">
+              Government of Telangana · Office of the Secretary
             </p>
           </div>
         </div>
@@ -109,12 +113,19 @@ export function LoginPage() {
       <section className="flex items-center justify-center px-4 py-10 sm:px-8">
         <div className="w-full max-w-md">
           <div className="mb-7 flex items-center gap-3 lg:hidden">
-            <span className="flex size-11 items-center justify-center rounded-xl bg-brand-900 text-[11px] font-black text-white">
-              T,R&amp;B
-            </span>
-            <div>
-              <p className="text-sm font-bold text-slate-900">Visitors Appointment Management</p>
-              <p className="text-[11px] text-slate-500">Transport, Roads &amp; Buildings Department</p>
+            <img
+              src="/logo.png"
+              alt="Government of Telangana emblem"
+              className="size-12 shrink-0 object-contain"
+            />
+            <div className="min-w-0">
+              <p className="text-base font-bold text-slate-900">VAMS</p>
+              <p className="text-sm font-semibold leading-snug text-slate-700">
+                Transport, Roads &amp; Buildings Department
+              </p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                Government of Telangana
+              </p>
             </div>
           </div>
 

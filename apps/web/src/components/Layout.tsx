@@ -80,13 +80,15 @@ export function Layout() {
   const sidebar = (
     <div className="flex h-full flex-col bg-brand-900 text-brand-50">
       <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-[11px] font-black tracking-wider text-white ring-1 ring-white/20">
-          T,R&amp;B
-        </span>
+        <img
+          src="/logo.png"
+          alt="Government of Telangana emblem"
+          className="size-11 shrink-0 object-contain"
+        />
         <div className="min-w-0">
-          <p className="truncate text-sm font-bold text-white">VAMS</p>
+          <p className="truncate text-base font-bold text-white">VAMS</p>
           <p className="truncate text-[10px] uppercase tracking-[0.14em] text-brand-200">
-            Visitors Appointments
+            Transport, Roads &amp; Buildings
           </p>
         </div>
       </div>
@@ -139,7 +141,7 @@ export function Layout() {
   );
 
   return (
-    <div className="min-h-dvh bg-slate-100">
+    <div className="min-h-dvh min-w-0 overflow-x-hidden bg-slate-100">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 lg:block">{sidebar}</aside>
 
       {mobileOpen ? (
@@ -175,11 +177,21 @@ export function Layout() {
             >
               <Menu className="size-5" />
             </button>
-            <div className="hidden items-center gap-2 text-xs text-slate-500 sm:flex">
-              <Building2 className="size-4 text-brand-600" />
-              <span className="font-semibold text-slate-700">Transport, Roads &amp; Buildings Department</span>
-              <span className="text-slate-300">/</span>
-              <span>Office of the Secretary</span>
+            <div className="flex min-w-0 items-center gap-2 sm:hidden">
+              <img
+                src="/logo.png"
+                alt="Government of Telangana emblem"
+                className="size-8 shrink-0 object-contain"
+              />
+              <span className="truncate text-sm font-bold text-slate-800">VAMS</span>
+            </div>
+            <div className="hidden min-w-0 items-center gap-2 text-xs text-slate-500 sm:flex">
+              <Building2 className="size-4 shrink-0 text-brand-600" />
+              <span className="truncate font-semibold text-slate-700">
+                Transport, Roads &amp; Buildings Department
+              </span>
+              <span className="hidden text-slate-300 md:inline">/</span>
+              <span className="hidden md:inline">Office of the Secretary</span>
             </div>
             <div className="ml-auto flex items-center gap-2">
               <span className="hidden rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-700 ring-1 ring-inset ring-emerald-200 sm:inline">
@@ -250,7 +262,7 @@ export function Layout() {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
+        <main className="mx-auto w-full min-w-0 max-w-7xl px-3 py-5 sm:px-6 lg:py-8">
           {user.mustChangePassword ? (
             <Alert tone="warning" title="Password change required" className="mb-5">
               Your account is using a temporary password.{' '}

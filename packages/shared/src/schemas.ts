@@ -119,6 +119,7 @@ export const requestQuerySchema = z.object({
   mobile: z.string().trim().max(20).optional(),
   email: z.string().trim().max(160).optional(),
   status: z.string().trim().optional(),
+  notificationStatus: z.enum(['QUEUED', 'SENT', 'DELIVERED', 'FAILED', 'SKIPPED']).optional(),
   from: dateString.optional(),
   to: dateString.optional(),
   assignedFrom: dateString.optional(),

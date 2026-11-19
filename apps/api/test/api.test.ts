@@ -207,6 +207,16 @@ describe('review, scheduling and notifications', () => {
     ]);
   });
 
+  it('filters the register by notification outcome', async () => {
+    const delivered = await peshi.get('/api/requests?notificationStatus=DELIVERED&pageSize=50');
+    expect(delivered.status).toBe(200);
+    expect(delivered.body.items.some((item: { id: string }) => item.id === requestId)).toBe(true);
+
+    const queued = await peshi.get('/api/requests?notificationStatus=QUEUED&pageSize=50');
+    expect(queued.status).toBe(200);
+    expect(queued.body.items.some((item: { id: string }) => item.id === requestId)).toBe(false);
+  });
+
   it('replays the same idempotent approval without duplicating notifications', async () => {
     const replay = await secretary
       .post(`/api/requests/${requestId}/approve`)

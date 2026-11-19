@@ -179,7 +179,7 @@ export function AuditPage() {
             <EmptyState title="No audit entries match these filters" />
           ) : (
             <div className="overflow-x-auto">
-              <table className="table-base">
+              <table className="table-base min-w-[760px]">
                 <thead>
                   <tr>
                     <th>Seq</th>

@@ -56,7 +56,7 @@ export function SchedulePrintPage() {
         <article className="print-sheet mx-auto max-w-4xl rounded-xl border border-slate-300 bg-white p-8 shadow-lg sm:p-10">
           <header className="border-b-2 border-slate-800 pb-4 text-center">
             <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">
-              Government of India
+              Government of Telangana
             </p>
             <h1 className="mt-1 text-lg font-bold uppercase tracking-wide text-slate-900">
               Transport, Roads &amp; Buildings Department

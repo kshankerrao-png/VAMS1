@@ -131,7 +131,7 @@ function UsersTab() {
           <EmptyState title="No users" />
         ) : (
           <div className="overflow-x-auto">
-            <table className="table-base">
+            <table className="table-base min-w-[680px]">
               <thead>
                 <tr>
                   <th>Name</th>

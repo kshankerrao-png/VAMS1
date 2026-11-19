@@ -463,7 +463,7 @@ export function IntakePage() {
                 <EmptyState title="No earlier visits" description="This is the visitor's first request." />
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="table-base">
+                  <table className="table-base min-w-[560px]">
                     <thead>
                       <tr>
                         <th>Reference</th>

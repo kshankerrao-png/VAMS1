@@ -86,7 +86,7 @@ export function DashboardPage() {
       icon: CalendarClock,
       tone: 'bg-sky-50 text-sky-700',
       hint: formatDate(today),
-      href: can('report:read') ? `/print/schedule?date=${today}` : '/register?status=APPROVED',
+      href: `/register?assignedFrom=${today}&assignedTo=${today}`,
     },
     {
       label: summary ? 'Materialized this month' : 'Materialized visits',
@@ -102,7 +102,7 @@ export function DashboardPage() {
       icon: BellRing,
       tone: 'bg-rose-50 text-rose-700',
       hint: stats?.notificationsPending ? `${stats.notificationsPending} awaiting dispatch` : 'No pending sends',
-      href: '/register',
+      href: '/register?notificationStatus=FAILED',
     },
   ];
 
@@ -302,52 +302,75 @@ export function DashboardPage() {
         </div>
 
         <div className="space-y-5">
-          <SectionCard
-            title="Today's schedule"
-            description={formatDate(today)}
-            icon={CalendarDays}
-            actions={
-              can('report:read') ? (
+          <Card className="overflow-hidden border-brand-700 bg-gradient-to-br from-brand-800 via-brand-900 to-brand-950 text-white shadow-lg">
+            <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 px-5 py-4">
+              <div className="flex items-start gap-3">
+                <span className="flex size-9 items-center justify-center rounded-lg bg-white/15 text-white ring-1 ring-white/20">
+                  <CalendarDays className="size-4.5" />
+                </span>
+                <div>
+                  <h2 className="text-sm font-bold tracking-wide text-white">Today's schedule</h2>
+                  <p className="mt-0.5 text-xs text-brand-100/85">{formatDate(today)}</p>
+                </div>
+              </div>
+              {can('report:read') ? (
                 <Link to={`/print/schedule?date=${today}`} target="_blank">
-                  <Button variant="ghost" size="sm">
+                  <Button variant="secondary" size="sm">
                     <Printer className="size-3.5" />
                     Print
                   </Button>
                 </Link>
-              ) : undefined
-            }
-            bodyClassName="p-0"
-          >
-            {!can('report:read') ? (
-              <EmptyState
-                title="Schedule visible to the Secretary's office"
-                description="Your role can track individual requests from the register."
-                icon={CalendarDays}
-              />
-            ) : scheduleQuery.isLoading ? (
-              <LoadingBlock />
-            ) : !schedule || schedule.items.length === 0 ? (
-              <EmptyState title="No appointments today" description="Approved slots for today will appear here." />
-            ) : (
-              <ul className="divide-y divide-slate-100">
-                {schedule.items.map((item) => (
-                  <li key={item.reference} className="flex gap-3 px-5 py-3">
-                    <span className="mt-0.5 w-16 shrink-0 text-xs font-bold tabular-nums text-brand-700">
-                      {formatTime(item.time)}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-[13px] font-semibold text-slate-800">
-                        {item.visitorName}
-                      </p>
-                      <p className="truncate text-[11px] text-slate-500">
-                        {item.organization ?? item.designation ?? '--'}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </SectionCard>
+              ) : null}
+            </div>
+            <div className="p-0">
+              {!can('report:read') ? (
+                <div className="px-5 py-8 text-center">
+                  <CalendarDays className="mx-auto size-8 text-brand-200/70" />
+                  <p className="mt-2 text-sm font-semibold text-white">
+                    Schedule visible to the Secretary's office
+                  </p>
+                  <p className="mt-1 text-xs text-brand-100/70">
+                    Your role can track individual requests from the register.
+                  </p>
+                </div>
+              ) : scheduleQuery.isLoading ? (
+                <p className="px-5 py-8 text-center text-xs text-brand-100/80">Loading schedule...</p>
+              ) : !schedule || schedule.items.length === 0 ? (
+                <div className="px-5 py-8 text-center">
+                  <p className="text-sm font-semibold text-white">No appointments today</p>
+                  <p className="mt-1 text-xs text-brand-100/70">
+                    Approved slots for today will appear here.
+                  </p>
+                </div>
+              ) : (
+                <ul className="divide-y divide-white/10">
+                  {schedule.items.map((item) => (
+                    <li key={item.reference} className="flex gap-3 px-5 py-3">
+                      <span className="mt-0.5 w-16 shrink-0 text-xs font-bold tabular-nums text-amber-300">
+                        {formatTime(item.time)}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-[13px] font-semibold text-white">
+                          {item.visitorName}
+                        </p>
+                        <p className="truncate text-[11px] text-brand-100/80">
+                          {item.organization ?? item.designation ?? '--'}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="border-t border-white/10 px-5 py-2.5">
+              <Link
+                to={`/register?assignedFrom=${today}&assignedTo=${today}`}
+                className="text-[11px] font-semibold text-brand-100 transition hover:text-white hover:underline"
+              >
+                View all appointments today
+              </Link>
+            </div>
+          </Card>
 
           {can('report:read') && summary ? (
             <SectionCard title="Next 7 days" description="Approved appointments by date." icon={CalendarClock}>
