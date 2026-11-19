@@ -1,4 +1,4 @@
-﻿import { Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   BellRing,
@@ -157,7 +157,7 @@ export function DashboardPage() {
           {can('request:decide') ? (
             <SectionCard
               title="Awaiting the Secretary's review"
-              description="Oldest requests first â€” approve with a slot or reject with a reason."
+              description="Oldest requests first -- approve with a slot or reject with a reason."
               icon={ClipboardCheck}
               actions={
                 <Link to="/queue" className="text-xs font-semibold text-brand-700 hover:underline">
@@ -188,8 +188,8 @@ export function DashboardPage() {
                           <span className="text-[11px] text-slate-400">{row.reference}</span>
                         </div>
                         <p className="mt-0.5 text-xs text-slate-500">
-                          {row.visitorDesignation ? `${row.visitorDesignation} Â· ` : ''}
-                          {row.visitorOrganization ?? 'â€”'}
+                          {row.visitorDesignation ? `${row.visitorDesignation} · ` : ''}
+                          {row.visitorOrganization ?? '--'}
                         </p>
                         <p className="mt-1 text-xs text-slate-600">{truncate(row.purpose, 110)}</p>
                       </div>
@@ -273,7 +273,7 @@ export function DashboardPage() {
                       <div className="mb-1 flex items-center justify-between text-xs">
                         <span className="font-medium text-slate-600">{STATUS_LABELS[typed]}</span>
                         <span className="tabular-nums text-slate-500">
-                          {count} Â· {percent}%
+                          {count} · {percent}%
                         </span>
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-slate-100">
@@ -340,7 +340,7 @@ export function DashboardPage() {
                         {item.visitorName}
                       </p>
                       <p className="truncate text-[11px] text-slate-500">
-                        {item.organization ?? item.designation ?? 'â€”'}
+                        {item.organization ?? item.designation ?? '--'}
                       </p>
                     </div>
                   </li>

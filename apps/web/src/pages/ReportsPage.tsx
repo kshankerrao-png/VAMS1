@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -126,7 +126,7 @@ export function ReportsPage() {
       </SectionCard>
 
       {summaryQuery.isLoading ? (
-        <LoadingBlock label="Building reportâ€¦" />
+        <LoadingBlock label="Building report..." />
       ) : summaryQuery.isError || !summary ? (
         <div className="mt-5">
           <Alert tone="error" title="Report unavailable">
@@ -137,7 +137,7 @@ export function ReportsPage() {
         <div className="mt-5 space-y-5">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {[
-              { label: 'Requests in period', value: summary.totalRequests, hint: `${formatDate(from)} â€“ ${formatDate(to)}` },
+              { label: 'Requests in period', value: summary.totalRequests, hint: `${formatDate(from)} - ${formatDate(to)}` },
               { label: 'Decisions taken', value: summary.decisions, hint: 'Approved or rejected' },
               { label: 'Appointments today', value: summary.appointmentsToday, hint: formatDate(today) },
               { label: 'Materialized this month', value: summary.materializedThisMonth, hint: 'Completed visits' },
@@ -314,7 +314,7 @@ export function ReportsPage() {
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Link to={`/print/schedule?date=${today}`} target="_blank">
-                  <Button variant="outline">Today Â· {formatDate(today)}</Button>
+                  <Button variant="outline">Today · {formatDate(today)}</Button>
                 </Link>
                 <Link to={`/print/schedule?date=${addDays(today, 1)}`} target="_blank">
                   <Button variant="outline">Tomorrow</Button>

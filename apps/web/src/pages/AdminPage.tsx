@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Activity,
@@ -414,7 +414,7 @@ function ResetPasswordModal({ user, onClose }: { user: UserRecord; onClose: () =
       open
       onClose={onClose}
       title="Reset password"
-      description={`${user.name} Â· @${user.username}`}
+      description={`${user.name} · @${user.username}`}
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
@@ -520,7 +520,7 @@ function TemplatesTab() {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-[11px] text-slate-400">
                 {template
-                  ? `Version ${template.version} Â· updated ${template.updatedAt ? timeAgo(template.updatedAt) : 'never'}${
+                  ? `Version ${template.version} · updated ${template.updatedAt ? timeAgo(template.updatedAt) : 'never'}${
                       template.updatedByName ? ` by ${template.updatedByName}` : ''
                     }`
                   : 'Default template'}
@@ -738,7 +738,7 @@ function SystemTab() {
         ) : null}
         <div className="mt-4">
           <Alert tone="info">
-            Background worker: {system?.workerEnabled ? 'enabled' : 'disabled'} Â· Webhook endpoint:
+            Background worker: {system?.workerEnabled ? 'enabled' : 'disabled'} · Webhook endpoint:
             <code className="mx-1 rounded bg-white/60 px-1">POST /api/webhooks/whatsapp</code>
           </Alert>
         </div>

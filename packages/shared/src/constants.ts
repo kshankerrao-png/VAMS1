@@ -16,6 +16,7 @@ export const ROLE_DESCRIPTIONS: Record<Role, string> = {
 export const PERMISSIONS = [
   'request:create',
   'request:read',
+  'visitor:update',
   'request:decide',
   'request:schedule',
   'request:materialize',
@@ -28,9 +29,10 @@ export const PERMISSIONS = [
 export type Permission = (typeof PERMISSIONS)[number];
 
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
-  PESHI_STAFF: ['request:create', 'request:read'],
+  PESHI_STAFF: ['request:create', 'request:read', 'visitor:update'],
   SECRETARY: [
     'request:read',
+    'visitor:update',
     'request:decide',
     'request:schedule',
     'request:materialize',
@@ -41,6 +43,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   ],
   ADMIN: [
     'request:read',
+    'visitor:update',
     'register:export',
     'report:read',
     'audit:read',

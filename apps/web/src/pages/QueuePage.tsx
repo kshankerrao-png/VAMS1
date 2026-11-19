@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { CheckCircle2, ClipboardCheck, Clock3, Mail, Phone, XCircle } from 'lucide-react';
@@ -62,7 +62,7 @@ export function QueuePage() {
       <SectionCard
         title="Requests awaiting a decision"
         description={
-          data ? `${data.total} request(s) in the queue` : 'Loading the queueâ€¦'
+          data ? `${data.total} request(s) in the queue` : 'Loading the queue...'
         }
         icon={ClipboardCheck}
         bodyClassName="p-0"
@@ -92,7 +92,7 @@ export function QueuePage() {
                       <StatusBadge status={row.status} short />
                     </div>
                     <p className="mt-0.5 text-xs text-slate-500">
-                      {[row.visitorDesignation, row.visitorOrganization].filter(Boolean).join(' Â· ') || 'â€”'}
+                      {[row.visitorDesignation, row.visitorOrganization].filter(Boolean).join(' · ') || '--'}
                     </p>
                     <p className="mt-2 max-w-3xl text-[13px] leading-relaxed text-slate-700">
                       {truncate(row.purpose, 220)}

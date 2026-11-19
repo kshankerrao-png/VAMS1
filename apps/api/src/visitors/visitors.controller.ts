@@ -1,6 +1,10 @@
-import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Patch, Query, Req } from '@nestjs/common';
+import type { Request } from 'express';
+import { visitorUpdateSchema } from '@vams/shared';
+import type { AuthUser } from '@vams/shared';
 import { VisitorsService } from './visitors.service';
-import { RequirePermissions } from '../common/decorators';
+import { CurrentUser, RequirePermissions, requestContext } from '../common/decorators';
+import { parseOrThrow } from '../common/validate';
 import { notFound } from '../common/errors';
 
 @Controller('visitors')
@@ -15,9 +19,21 @@ export class VisitorsController {
 
   @Get(':id')
   @RequirePermissions('request:read')
-  get(@Param('id') id: string) {
-    const result = this.visitors.get(id);
+  async get(@Param('id') id: string) {
+    const result = await this.visitors.get(id);
     if (!result) throw notFound('Visitor', 'VISITOR_NOT_FOUND');
     return result;
+  }
+
+  @Patch(':id')
+  @RequirePermissions('visitor:update')
+  update(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @CurrentUser() user: AuthUser,
+    @Req() request: Request,
+  ) {
+    const input = parseOrThrow(visitorUpdateSchema, body);
+    return this.visitors.update(id, input, user, requestContext(request));
   }
 }

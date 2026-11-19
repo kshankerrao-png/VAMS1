@@ -102,6 +102,27 @@ describe('intake, lookup and history', () => {
     expect(byEmail.body.matches[0].email).toBe(email);
   });
 
+  it('updates a visitor profile from the register', async () => {
+    const lookup = await peshi.get('/api/visitors/lookup?q=lookup.visitor@example.com');
+    const visitorId = lookup.body.matches[0].id as string;
+
+    const updated = await peshi.patch(`/api/visitors/${visitorId}`).send({
+      name: 'Meera Krishnan',
+      designation: 'Joint Director',
+      organization: 'Metro Rail Corporation',
+      address: 'Metro Bhavan, New Delhi',
+      mobile,
+      email,
+    });
+    expect(updated.status).toBe(200);
+    expect(updated.body.designation).toBe('Joint Director');
+    expect(updated.body.address).toBe('Metro Bhavan, New Delhi');
+
+    const detail = await peshi.get(`/api/visitors/${visitorId}`);
+    expect(detail.status).toBe(200);
+    expect(detail.body.visitor.designation).toBe('Joint Director');
+  });
+
   it('links a returning visitor to their existing profile and history', async () => {
     const second = await peshi
       .post('/api/requests')

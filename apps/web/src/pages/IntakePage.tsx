@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -229,7 +229,7 @@ export function IntakePage() {
             ) : null}
 
             {lookupQuery.isFetching && lookupTerm.length >= 2 ? (
-              <p className="mt-2 text-xs text-slate-400">Searching visitor historyâ€¦</p>
+              <p className="mt-2 text-xs text-slate-400">Searching visitor history...</p>
             ) : null}
 
             {lookupTerm.trim().length >= 2 && !lookupQuery.isFetching ? (
@@ -247,7 +247,7 @@ export function IntakePage() {
                       <div className="min-w-0 flex-1">
                         <p className="text-[13px] font-semibold text-slate-800">{match.name}</p>
                         <p className="truncate text-[11px] text-slate-500">
-                          {[match.designation, match.organization].filter(Boolean).join(' Â· ') ||
+                          {[match.designation, match.organization].filter(Boolean).join(' · ') ||
                             'No designation recorded'}
                         </p>
                         <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-slate-400">
@@ -358,7 +358,7 @@ export function IntakePage() {
                       .join(', ')}
                   </span>
                   <span className="mt-1 block text-xs">
-                    You can still save this request â€” the existing record will be linked to the same
+                    You can still save this request -- the existing record will be linked to the same
                     visitor profile.
                   </span>
                 </Alert>
@@ -451,8 +451,8 @@ export function IntakePage() {
               title="Previous visits"
               description={
                 selectedVisitor
-                  ? `${selectedVisitor.name} Â· ${selectedVisitor.requestCount} request(s) on record`
-                  : 'Loading visit historyâ€¦'
+                  ? `${selectedVisitor.name} · ${selectedVisitor.requestCount} request(s) on record`
+                  : 'Loading visit history...'
               }
               icon={History}
               bodyClassName="p-0"
@@ -485,10 +485,10 @@ export function IntakePage() {
                           </td>
                           <td className="whitespace-nowrap">
                             {item.assignedDate
-                              ? `${formatDate(item.assignedDate)} Â· ${formatTime(item.assignedTime)}`
-                              : 'â€”'}
+                              ? `${formatDate(item.assignedDate)} · ${formatTime(item.assignedTime)}`
+                              : '--'}
                           </td>
-                          <td>{item.decidedByName ?? 'â€”'}</td>
+                          <td>{item.decidedByName ?? '--'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -540,7 +540,7 @@ export function IntakePage() {
               ) : null}
               {selectedVisitor ? (
                 <p className="border-t border-slate-100 pt-2 text-[11px] text-slate-400">
-                  Last visit: {selectedVisitor.lastVisitDate ? formatDate(selectedVisitor.lastVisitDate) : 'â€”'}
+                  Last visit: {selectedVisitor.lastVisitDate ? formatDate(selectedVisitor.lastVisitDate) : '--'}
                 </p>
               ) : null}
             </div>
@@ -557,7 +557,7 @@ export function IntakePage() {
             <ul className="mt-2 space-y-2 text-[11px] text-slate-500">
               {[
                 'Name, mobile and email are mandatory.',
-                'Mobile and email must be correct â€” confirmations are sent there.',
+                'Mobile and email must be correct -- confirmations are sent there.',
                 "Confirm the visitor's designation before saving.",
                 'Mention documents the visitor must carry.',
               ].map((item) => (

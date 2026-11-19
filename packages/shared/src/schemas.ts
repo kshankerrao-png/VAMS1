@@ -78,6 +78,16 @@ export const intakeSchema = z.object({
 });
 export type IntakePayload = z.infer<typeof intakeSchema>;
 
+export const visitorUpdateSchema = z.object({
+  name: z.string().trim().min(2, 'Visitor name is required').max(120),
+  designation: optionalText(120, 'Designation'),
+  organization: optionalText(160, 'Organization'),
+  address: optionalText(300, 'Address'),
+  mobile: mobileField,
+  email: emailField,
+});
+export type VisitorUpdatePayload = z.infer<typeof visitorUpdateSchema>;
+
 export const approveSchema = z.object({
   assignedDate: dateString,
   assignedTime: timeString,

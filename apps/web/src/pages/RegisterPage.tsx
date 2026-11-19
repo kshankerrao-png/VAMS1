@@ -1,16 +1,17 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowDownUp,
   BookOpen,
   ChevronDown,
   Download,
   Filter,
+  Pencil,
   RotateCcw,
   Search,
 } from 'lucide-react';
-import type { DashboardStats, Paginated, RequestListRow } from '@vams/shared';
+import type { DashboardStats, Paginated, RequestListRow, VisitorProfile } from '@vams/shared';
 import { REQUEST_STATUSES, STATUS_SHORT_LABELS } from '@vams/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { api, downloadFile, errorMessage } from '../lib/api';
@@ -22,6 +23,7 @@ import {
   EmptyState,
   Input,
   LoadingBlock,
+  Modal,
   PageHeader,
   Pagination,
   SectionCard,
@@ -46,6 +48,7 @@ export function RegisterPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [editingVisitorId, setEditingVisitorId] = useState<string | null>(null);
 
   const sort = (searchParams.get('sort') as SortColumn | null) ?? 'requestDate';
   const dir = (searchParams.get('dir') as 'asc' | 'desc' | null) ?? 'desc';
@@ -347,7 +350,7 @@ export function RegisterPage() {
           description={
             data
               ? `${data.total} record(s) match the current filters`
-              : 'Loading register recordsâ€¦'
+              : 'Loading register records...'
           }
           icon={BookOpen}
           bodyClassName="p-0"
@@ -419,14 +422,34 @@ export function RegisterPage() {
                             </span>
                           </span>
                         ) : (
-                          <span className="text-slate-300">â€”</span>
+                          <span className="text-slate-300">--</span>
                         )}
                       </td>
                       <td>
-                        <span className="block text-[13px] font-semibold text-slate-800">
-                          {row.visitorName}
-                        </span>
-                        <span className="text-[10px] text-slate-400">{row.visitorDesignation ?? 'â€”'}</span>
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <span className="block text-[13px] font-semibold text-slate-800">
+                              {row.visitorName}
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              {row.visitorDesignation ?? '--'}
+                            </span>
+                          </div>
+                          {can('visitor:update') ? (
+                            <button
+                              type="button"
+                              title="Edit visitor details"
+                              aria-label={`Edit ${row.visitorName}`}
+                              className="rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-brand-700"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setEditingVisitorId(row.visitorId);
+                              }}
+                            >
+                              <Pencil className="size-3.5" />
+                            </button>
+                          ) : null}
+                        </div>
                       </td>
                       <td>
                         <StatusBadge status={row.status} short />
@@ -437,10 +460,10 @@ export function RegisterPage() {
                         ) : null}
                       </td>
                       <td className="whitespace-nowrap text-xs">
-                        {row.decisionAt ? formatDateTime(row.decisionAt) : 'â€”'}
+                        {row.decisionAt ? formatDateTime(row.decisionAt) : '--'}
                       </td>
                       <td className="max-w-[190px] text-xs text-slate-500">
-                        {row.visitorOrganization ?? 'â€”'}
+                        {row.visitorOrganization ?? '--'}
                       </td>
                       <td className="max-w-[280px] text-xs text-slate-600">{truncate(row.purpose, 90)}</td>
                       <td>
@@ -455,7 +478,7 @@ export function RegisterPage() {
                             <Badge tone="green">{row.notificationSummary.delivered} delivered</Badge>
                           ) : null}
                           {row.notificationSummary.total === 0 ? (
-                            <span className="text-[10px] text-slate-300">â€”</span>
+                            <span className="text-[10px] text-slate-300">--</span>
                           ) : null}
                         </div>
                       </td>
@@ -476,6 +499,122 @@ export function RegisterPage() {
           ) : null}
         </SectionCard>
       </div>
+
+      <VisitorEditDialog
+        visitorId={editingVisitorId}
+        onClose={() => setEditingVisitorId(null)}
+      />
     </>
+  );
+}
+
+function VisitorEditDialog({
+  visitorId,
+  onClose,
+}: {
+  visitorId: string | null;
+  onClose: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const { notify } = useToast();
+
+  const detailQuery = useQuery({
+    queryKey: ['visitor', visitorId],
+    queryFn: () => api<{ visitor: VisitorProfile; history: unknown[] }>(`/visitors/${visitorId}`),
+    enabled: Boolean(visitorId),
+  });
+
+  const mutation = useMutation({
+    mutationFn: (values: Record<string, string>) =>
+      api<VisitorProfile>(`/visitors/${visitorId}`, { method: 'PATCH', body: values }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['requests'] });
+      void queryClient.invalidateQueries({ queryKey: ['stats'] });
+      if (visitorId) void queryClient.invalidateQueries({ queryKey: ['visitor', visitorId] });
+      notify('Visitor details updated.');
+      onClose();
+    },
+  });
+
+  const visitor = detailQuery.data?.visitor;
+
+  return (
+    <Modal
+      open={Boolean(visitorId)}
+      onClose={onClose}
+      title="Edit visitor details"
+      description="Changes apply to this visitor's profile and every request linked to it."
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form="visitor-edit-form"
+            loading={mutation.isPending}
+            disabled={!visitor}
+          >
+            Save changes
+          </Button>
+        </>
+      }
+    >
+      {detailQuery.isLoading ? (
+        <LoadingBlock label="Loading visitor..." />
+      ) : detailQuery.isError ? (
+        <p className="text-xs text-rose-600">{errorMessage(detailQuery.error)}</p>
+      ) : visitor ? (
+        <form
+          id="visitor-edit-form"
+          key={visitor.updatedAt}
+          className="space-y-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const form = new FormData(event.currentTarget);
+            const values = Object.fromEntries(
+              [...form.entries()].map(([key, value]) => [key, String(value)]),
+            );
+            mutation.mutate(values);
+          }}
+        >
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block text-xs">
+              <span className="label-base">Visitor name *</span>
+              <Input name="name" defaultValue={visitor.name} required maxLength={120} />
+            </label>
+            <label className="block text-xs">
+              <span className="label-base">Designation</span>
+              <Input name="designation" defaultValue={visitor.designation ?? ''} maxLength={120} />
+            </label>
+            <label className="block text-xs">
+              <span className="label-base">Organization</span>
+              <Input name="organization" defaultValue={visitor.organization ?? ''} maxLength={160} />
+            </label>
+            <label className="block text-xs">
+              <span className="label-base">Mobile number *</span>
+              <Input
+                name="mobile"
+                type="tel"
+                defaultValue={visitor.mobile}
+                required
+                placeholder="+919876543210"
+              />
+            </label>
+            <label className="block text-xs">
+              <span className="label-base">Email *</span>
+              <Input name="email" type="email" defaultValue={visitor.email} required />
+            </label>
+            <label className="block text-xs sm:col-span-2">
+              <span className="label-base">Address</span>
+              <Input name="address" defaultValue={visitor.address ?? ''} maxLength={300} />
+            </label>
+          </div>
+          {mutation.isError ? (
+            <p className="text-xs text-rose-600">{errorMessage(mutation.error)}</p>
+          ) : null}
+        </form>
+      ) : null}
+    </Modal>
   );
 }

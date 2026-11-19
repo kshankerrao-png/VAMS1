@@ -1,12 +1,19 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type {
+  AuthUser,
   RequestStatus,
   VisitorHistoryItem,
   VisitorLookupMatch,
   VisitorLookupResponse,
   VisitorProfile,
+  VisitorUpdatePayload,
 } from '@vams/shared';
+import { normalizeEmail, normalizeName } from '@vams/shared';
 import { DatabaseService, SqlValue } from '../db/database.service';
+import { AuditService } from '../audit/audit.service';
+import { notFound } from '../common/errors';
+import { nowIso } from '../common/time';
+import type { RequestContext } from '../common/decorators';
 
 interface VisitorRow {
   id: string;
@@ -45,7 +52,10 @@ const VISITOR_SELECT = `
 
 @Injectable()
 export class VisitorsService {
-  constructor(@Inject(DatabaseService) private readonly db: DatabaseService) {}
+  constructor(
+    @Inject(DatabaseService) private readonly db: DatabaseService,
+    @Inject(AuditService) private readonly audit: AuditService,
+  ) {}
 
   async lookup(rawQuery: string): Promise<VisitorLookupResponse> {
     const query = rawQuery.trim().toLowerCase();
@@ -132,6 +142,67 @@ export class VisitorsService {
   async profile(visitorId: string): Promise<VisitorProfile | null> {
     const row = await this.db.get<VisitorRow>(`${VISITOR_SELECT} WHERE v.id = ?`, visitorId);
     return row ? this.mapProfile(row) : null;
+  }
+
+  async update(
+    visitorId: string,
+    payload: VisitorUpdatePayload,
+    actor: AuthUser,
+    context: RequestContext,
+  ): Promise<VisitorProfile> {
+    const timestamp = nowIso();
+    await this.db.transaction(async () => {
+      const before = await this.db.get<VisitorRow>(
+        'SELECT * FROM visitor_profiles WHERE id = ?',
+        visitorId,
+      );
+      if (!before) throw notFound('Visitor', 'VISITOR_NOT_FOUND');
+
+      await this.db.run(
+        `UPDATE visitor_profiles
+         SET name = ?, name_normalized = ?, designation = ?, organization = ?, address = ?,
+             mobile = ?, email = ?, email_normalized = ?, updated_at = ?
+         WHERE id = ?`,
+        payload.name,
+        normalizeName(payload.name),
+        payload.designation ?? null,
+        payload.organization ?? null,
+        payload.address ?? null,
+        payload.mobile,
+        payload.email,
+        normalizeEmail(payload.email),
+        timestamp,
+        visitorId,
+      );
+
+      await this.audit.log({
+        actor: { id: actor.id, name: actor.name },
+        action: 'VISITOR_UPDATED',
+        entityType: 'visitor_profile',
+        entityId: visitorId,
+        before: {
+          name: before.name,
+          designation: before.designation,
+          organization: before.organization,
+          address: before.address,
+          mobile: before.mobile,
+          email: before.email,
+        },
+        after: {
+          name: payload.name,
+          designation: payload.designation ?? null,
+          organization: payload.organization ?? null,
+          address: payload.address ?? null,
+          mobile: payload.mobile,
+          email: payload.email,
+        },
+        ...context,
+      });
+    });
+
+    const updated = await this.profile(visitorId);
+    if (!updated) throw notFound('Visitor', 'VISITOR_NOT_FOUND');
+    return updated;
   }
 
   private mapProfile(row: VisitorRow): VisitorProfile {
