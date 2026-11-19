@@ -53,6 +53,12 @@ export class RequestsController {
     return this.requests.duplicates(mobile, email);
   }
 
+  @Get('schedule')
+  @RequirePermissions('request:read')
+  schedule(@Query('date') date?: string) {
+    return this.requests.schedule(date);
+  }
+
   @Post()
   @RequirePermissions('request:create')
   create(

@@ -49,9 +49,9 @@ export function DashboardPage() {
     enabled: can('report:read'),
   });
   const scheduleQuery = useQuery({
-    queryKey: ['reports', 'schedule', today],
-    queryFn: () => api<ScheduleResponse>(`/reports/schedule?date=${today}`),
-    enabled: can('report:read'),
+    queryKey: ['requests', 'schedule', today],
+    queryFn: () => api<ScheduleResponse>(`/requests/schedule?date=${today}`),
+    enabled: Boolean(user),
   });
   const pendingQuery = useQuery({
     queryKey: ['requests', 'dashboard', 'pending'],
@@ -324,17 +324,7 @@ export function DashboardPage() {
               ) : null}
             </div>
             <div className="p-0">
-              {!can('report:read') ? (
-                <div className="px-5 py-8 text-center">
-                  <CalendarDays className="mx-auto size-8 text-brand-200/70" />
-                  <p className="mt-2 text-sm font-semibold text-white">
-                    Schedule visible to the Secretary's office
-                  </p>
-                  <p className="mt-1 text-xs text-brand-100/70">
-                    Your role can track individual requests from the register.
-                  </p>
-                </div>
-              ) : scheduleQuery.isLoading ? (
+              {scheduleQuery.isLoading ? (
                 <p className="px-5 py-8 text-center text-xs text-brand-100/80">Loading schedule...</p>
               ) : !schedule || schedule.items.length === 0 ? (
                 <div className="px-5 py-8 text-center">

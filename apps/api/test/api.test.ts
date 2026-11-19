@@ -207,6 +207,15 @@ describe('review, scheduling and notifications', () => {
     ]);
   });
 
+  it('serves the approved schedule to peshi for the dashboard card', async () => {
+    const response = await peshi.get(`/api/requests/schedule?date=${futureDay}`);
+    expect(response.status).toBe(200);
+    expect(Array.isArray(response.body.items)).toBe(true);
+    expect(response.body.items.some((item: { reference: string }) => item.reference === reference)).toBe(
+      true,
+    );
+  });
+
   it('returns seven upcoming appointment days for dashboard drill-down', async () => {
     const response = await peshi.get('/api/requests/stats');
     expect(response.status).toBe(200);

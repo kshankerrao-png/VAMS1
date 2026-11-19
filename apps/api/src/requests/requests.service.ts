@@ -10,6 +10,8 @@ import {
   type RequestQuery,
   type RequestStatus,
   type SlotAvailability,
+  type ScheduleAppointment,
+  type ScheduleResponse,
   normalizeMobile,
 } from '@vams/shared';
 import { DatabaseService, SqlValue } from '../db/database.service';
@@ -30,6 +32,7 @@ import {
   daysSince,
   istDateTimeToEpoch,
   istDay,
+  isValidDay,
   nowIso,
 } from '../common/time';
 
@@ -287,6 +290,49 @@ export class RequestsService {
       notificationFailures: Number(failures?.count ?? 0),
       notificationsPending: Number(pending?.count ?? 0),
       upcomingNextDays,
+    };
+  }
+
+  async schedule(dateInput?: string): Promise<ScheduleResponse> {
+    const day = dateInput ?? istDay();
+    if (!isValidDay(day)) {
+      throw badRequest('INVALID_DATE', 'Invalid date', 'Use the YYYY-MM-DD date format.');
+    }
+    const rows = await this.db.all<{
+      reference: string;
+      assigned_time: string;
+      visitor_name: string;
+      visitor_designation: string | null;
+      visitor_organization: string | null;
+      visitor_mobile: string;
+      purpose: string;
+      accompanying_count: number;
+      status: RequestStatus;
+    }>(
+      `SELECT r.reference, r.assigned_time, v.name AS visitor_name, v.designation AS visitor_designation,
+              v.organization AS visitor_organization, v.mobile AS visitor_mobile,
+              r.purpose, r.accompanying_count, r.status
+       FROM appointment_requests r
+       JOIN visitor_profiles v ON v.id = r.visitor_id
+       WHERE r.assigned_date = ? AND r.status IN ('APPROVED', 'MATERIALIZED')
+       ORDER BY r.assigned_time ASC`,
+      day,
+    );
+    const items: ScheduleAppointment[] = rows.map((row) => ({
+      reference: row.reference,
+      time: row.assigned_time,
+      visitorName: row.visitor_name,
+      designation: row.visitor_designation,
+      organization: row.visitor_organization,
+      mobile: row.visitor_mobile,
+      purpose: row.purpose,
+      accompanyingCount: Number(row.accompanying_count),
+      status: row.status,
+    }));
+    return {
+      date: day,
+      venue: (await this.settings.get()).venue,
+      items,
     };
   }
 
