@@ -738,7 +738,7 @@ function SystemTab() {
         ) : null}
         <div className="mt-4">
           <Alert tone="info">
-            Background worker: {system?.workerEnabled ? 'enabled' : 'disabled'} · Webhook endpoint:
+            Background worker: {system?.workerEnabled ? 'enabled' : 'disabled (on-demand dispatch)'} · Webhook endpoint:
             <code className="mx-1 rounded bg-white/60 px-1">POST /api/webhooks/whatsapp</code>
           </Alert>
         </div>

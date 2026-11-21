@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
-import type { Permission } from '@vams/shared';
+import type { Permission, Role } from '@vams/shared';
 import { ShieldAlert } from 'lucide-react';
 import { useAuth } from './auth/AuthProvider';
 import { Layout } from './components/Layout';
@@ -67,7 +67,7 @@ export default function App() {
             <Route
               path="audit"
               element={
-                <RequirePermission permission="audit:read">
+                <RequirePermission permission="audit:read" excludeRoles={['SECRETARY']}>
                   <AuditPage />
                 </RequirePermission>
               }
@@ -134,12 +134,14 @@ function ProtectedRoute() {
 function RequirePermission({
   permission,
   children,
+  excludeRoles,
 }: {
   permission: Permission;
   children: React.ReactNode;
+  excludeRoles?: Role[];
 }) {
-  const { can } = useAuth();
-  if (!can(permission)) {
+  const { user, can } = useAuth();
+  if (!can(permission) || (user && excludeRoles?.includes(user.role))) {
     return (
       <Card className="mx-auto mt-6 max-w-lg p-8 text-center">
         <span className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-rose-50 text-rose-600">
@@ -147,8 +149,8 @@ function RequirePermission({
         </span>
         <h2 className="text-base font-bold text-slate-900">Access restricted</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Your role does not include the <code className="rounded bg-slate-100 px-1">{permission}</code>{' '}
-          permission. Contact the system administrator if you believe this is an error.
+          Your role does not have access to this section. Contact the system administrator if you
+          believe this is an error.
         </p>
         <Button className="mt-5" variant="outline" onClick={() => window.history.back()}>
           Go back

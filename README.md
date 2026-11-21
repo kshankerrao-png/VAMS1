@@ -172,6 +172,10 @@ Copy `.env.example` to `.env` at the repository root (or `apps/api/.env`) and ad
 | `WHATSAPP_API_URL` / `WHATSAPP_PHONE_NUMBER_ID` / `WHATSAPP_TOKEN` | unset | Real WhatsApp delivery; unset = simulated |
 | `WHATSAPP_VERIFY_TOKEN` / `WHATSAPP_APP_SECRET` | unset | Webhook verification and signature checking |
 | `WHATSAPP_TEMPLATE_NAME` / `WHATSAPP_TEMPLATE_LANG` | unset | Send via an approved utility template instead of free text |
+| `ZAVUDEV_API_KEY` (or `ZAVU_API_KEY`) | unset | Zavu API key; enables WhatsApp via `https://api.zavu.dev/v2` (takes precedence over Twilio and the Cloud API) |
+| `ZAVU_API_URL` | `https://api.zavu.dev/v2` | Zavu API base URL |
+| `ZAVU_WHATSAPP_FROM` | unset | Optional Zavu WhatsApp sender in E.164; unset = project default sender |
+| `ZAVU_TEMPLATE_ID` | unset | Approved Zavu WhatsApp template ID; unset = free-form text (only inside the 24-hour window) |
 | `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_WHATSAPP_FROM` | unset | Twilio WhatsApp (takes precedence over the Cloud API) |
 | `TWILIO_CONTENT_SID` | unset | Pre-approved `HX…` template required on Twilio trial/sandbox accounts |
 | `WHATSAPP_DEFAULT_COUNTRY_CODE` | `91` | Country code added to 10-digit mobile numbers |
@@ -189,7 +193,8 @@ Copy `.env.example` to `.env` at the repository root (or `apps/api/.env`) and ad
 **Vercel preview deployment**
 
 `vercel.json` builds the web bundle and runs the API as a single Vercel Function (`api/index.js`).
-On Vercel the background worker is disabled, so queued notifications are not dispatched. Without
+On Vercel the background worker is disabled; approvals and manual resends dispatch due notifications
+inline, but automatic retry backoff still needs a long-running process. Without
 `DATABASE_URL` the SQLite database and notification outbox live in `/tmp` and reset on every cold
 start; set `DATABASE_URL` to the Supabase Session Pooler URI for persistent data. Run `npm start` or
 the Docker/PostgreSQL profile when you need the worker and real delivery.

@@ -11,6 +11,7 @@ export interface OutboundMessage {
   body: string;
   reference: string;
   templateVariables?: Record<string, string>;
+  namedTemplateVariables?: Record<string, string>;
 }
 
 export interface SendResult {

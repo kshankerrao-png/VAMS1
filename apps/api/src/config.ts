@@ -31,6 +31,13 @@ export interface TwilioConfig {
   contentSid: string;
 }
 
+export interface ZavuConfig {
+  apiKey: string;
+  apiUrl: string;
+  from: string;
+  templateId: string;
+}
+
 export interface AppConfig {
   repoRoot: string;
   port: number;
@@ -53,6 +60,7 @@ export interface AppConfig {
   smtp: SmtpConfig;
   whatsapp: WhatsappConfig;
   twilio: TwilioConfig;
+  zavu: ZavuConfig;
   appBaseUrl: string;
   appVersion: string;
 }
@@ -126,8 +134,15 @@ export function loadConfig(): AppConfig {
     from: env.TWILIO_WHATSAPP_FROM ?? '',
     contentSid: env.TWILIO_CONTENT_SID ?? '',
   };
+  const zavu: ZavuConfig = {
+    apiKey: (env.ZAVUDEV_API_KEY ?? '').trim() || (env.ZAVU_API_KEY ?? '').trim(),
+    apiUrl: (env.ZAVU_API_URL ?? 'https://api.zavu.dev/v2').replace(/\/+$/, ''),
+    from: (env.ZAVU_WHATSAPP_FROM ?? '').trim(),
+    templateId: (env.ZAVU_TEMPLATE_ID ?? '').trim(),
+  };
   const twilioConfigured = Boolean(twilio.accountSid && twilio.authToken && twilio.from);
   const whatsappCloudConfigured = Boolean(whatsapp.phoneNumberId && whatsapp.token);
+  const zavuConfigured = Boolean(zavu.apiKey);
 
   const allowSimulation = env.ALLOW_NOTIFICATION_SIMULATION
     ? env.ALLOW_NOTIFICATION_SIMULATION === 'true'
@@ -150,11 +165,12 @@ export function loadConfig(): AppConfig {
     workerIntervalMs: numberFrom(env.WORKER_INTERVAL_MS, 3000),
     allowSimulation,
     emailConfigured: Boolean(smtp.host),
-    whatsappConfigured: twilioConfigured || whatsappCloudConfigured,
+    whatsappConfigured: zavuConfigured || twilioConfigured || whatsappCloudConfigured,
     whatsappCountryCode: (env.WHATSAPP_DEFAULT_COUNTRY_CODE ?? '91').replace(/\D/g, '') || '91',
     smtp,
     whatsapp,
     twilio,
+    zavu,
     appBaseUrl: env.APP_BASE_URL ?? `http://localhost:${numberFrom(env.PORT, 4000)}`,
     appVersion: '1.0.0',
   };

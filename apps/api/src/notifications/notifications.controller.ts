@@ -1,4 +1,4 @@
-import { Controller, Get, Inject, Param, Post, Query, Req } from '@nestjs/common';
+import { Controller, Get, Inject, Logger, Param, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import type { AuthUser } from '@vams/shared';
 import { CurrentUser, RequirePermissions, requestContext } from '../common/decorators';
@@ -9,6 +9,8 @@ import { NotificationWorker } from './notification.worker';
 
 @Controller('notifications')
 export class NotificationsController {
+  private readonly logger = new Logger(NotificationsController.name);
+
   constructor(
     @Inject(NotificationService) private readonly notifications: NotificationService,
     @Inject(NotificationWorker) private readonly worker: NotificationWorker,
@@ -23,9 +25,19 @@ export class NotificationsController {
 
   @Post(':id/resend')
   @RequirePermissions('notification:resend')
-  resend(@Param('id') id: string, @CurrentUser() user: AuthUser, @Req() request: Request) {
-    const record = this.notifications.resend(id, user, requestContext(request));
-    this.worker.kick();
+  async resend(@Param('id') id: string, @CurrentUser() user: AuthUser, @Req() request: Request) {
+    const record = await this.notifications.resend(id, user, requestContext(request));
+    if (this.worker.enabled) {
+      this.worker.kick();
+      return record;
+    }
+    try {
+      await this.worker.drainAll(4);
+    } catch (error) {
+      this.logger.error(
+        `Inline notification dispatch failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
     return record;
   }
 

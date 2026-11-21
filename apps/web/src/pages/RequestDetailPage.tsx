@@ -80,7 +80,7 @@ export function RequestDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { can } = useAuth();
+  const { can, user } = useAuth();
   const { notify } = useToast();
   const [dialog, setDialog] = useState<'approve' | 'reject' | 'reschedule' | 'materialize' | null>(null);
   const [showAllAudits, setShowAllAudits] = useState(false);
@@ -125,6 +125,7 @@ export function RequestDetailPage() {
     request.status === 'APPROVED' &&
     isSlotInPast(request.assignedDate, request.assignedTime);
   const canMaterialize = can('request:materialize') && slotPassed;
+  const showAuditTrail = user?.role !== 'SECRETARY';
   const audits = showAllAudits ? request.audits : request.audits.slice(0, 8);
   const target = {
     id: request.id,
@@ -374,52 +375,54 @@ export function RequestDetailPage() {
             )}
           </SectionCard>
 
-          <SectionCard
-            title="Audit trail"
-            description="Every action is hash-chained and cannot be edited."
-            icon={ShieldCheck}
-            actions={
-              request.audits.length > 8 ? (
-                <Button variant="ghost" size="sm" onClick={() => setShowAllAudits((value) => !value)}>
-                  {showAllAudits ? 'Show recent' : `Show all ${request.audits.length}`}
-                </Button>
-              ) : undefined
-            }
-          >
-            {audits.length === 0 ? (
-              <EmptyState title="No audit entries" />
-            ) : (
-              <ol className="space-y-3">
-                {audits.map((entry) => (
-                  <li key={entry.id} className="flex gap-3">
-                    <span className="mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                      <Clock3 className="size-3.5" />
-                    </span>
-                    <div className="min-w-0 flex-1 border-b border-slate-100 pb-2.5">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-[13px] font-semibold text-slate-800">
-                          {actionLabel(entry.action)}
-                        </p>
-                        <span className="text-[10px] text-slate-400">
-                          {entry.actorName} · {formatDateTime(entry.createdAt)}
-                        </span>
+          {showAuditTrail ? (
+            <SectionCard
+              title="Audit trail"
+              description="Every action is hash-chained and cannot be edited."
+              icon={ShieldCheck}
+              actions={
+                request.audits.length > 8 ? (
+                  <Button variant="ghost" size="sm" onClick={() => setShowAllAudits((value) => !value)}>
+                    {showAllAudits ? 'Show recent' : `Show all ${request.audits.length}`}
+                  </Button>
+                ) : undefined
+              }
+            >
+              {audits.length === 0 ? (
+                <EmptyState title="No audit entries" />
+              ) : (
+                <ol className="space-y-3">
+                  {audits.map((entry) => (
+                    <li key={entry.id} className="flex gap-3">
+                      <span className="mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                        <Clock3 className="size-3.5" />
+                      </span>
+                      <div className="min-w-0 flex-1 border-b border-slate-100 pb-2.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-[13px] font-semibold text-slate-800">
+                            {actionLabel(entry.action)}
+                          </p>
+                          <span className="text-[10px] text-slate-400">
+                            {entry.actorName} · {formatDateTime(entry.createdAt)}
+                          </span>
+                        </div>
+                        {entry.before || entry.after ? (
+                          <details className="mt-1">
+                            <summary className="cursor-pointer text-[10px] font-medium text-slate-400 hover:text-slate-600">
+                              View change details
+                            </summary>
+                            <pre className="mt-1 max-h-40 overflow-auto rounded bg-slate-50 p-2 text-[10px] text-slate-500">
+                              {JSON.stringify({ before: entry.before, after: entry.after }, null, 2)}
+                            </pre>
+                          </details>
+                        ) : null}
                       </div>
-                      {entry.before || entry.after ? (
-                        <details className="mt-1">
-                          <summary className="cursor-pointer text-[10px] font-medium text-slate-400 hover:text-slate-600">
-                            View change details
-                          </summary>
-                          <pre className="mt-1 max-h-40 overflow-auto rounded bg-slate-50 p-2 text-[10px] text-slate-500">
-                            {JSON.stringify({ before: entry.before, after: entry.after }, null, 2)}
-                          </pre>
-                        </details>
-                      ) : null}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </SectionCard>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </SectionCard>
+          ) : null}
         </div>
 
         <aside className="order-first space-y-5 xl:order-none">

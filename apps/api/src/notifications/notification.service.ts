@@ -332,6 +332,17 @@ export class NotificationService {
           row.channel === 'WHATSAPP'
             ? { '1': variables.assigned_date, '2': variables.assigned_time }
             : undefined,
+        namedTemplateVariables:
+          row.channel === 'WHATSAPP'
+            ? {
+                visitor_name: variables.visitor_name,
+                reference: variables.reference,
+                assigned_date: variables.assigned_date,
+                assigned_time: variables.assigned_time,
+                venue: variables.venue,
+                instructions: variables.instructions,
+              }
+            : undefined,
       });
       const timestamp = nowIso();
       const status: NotificationStatus = result.deliveredImmediately ? 'DELIVERED' : 'SENT';

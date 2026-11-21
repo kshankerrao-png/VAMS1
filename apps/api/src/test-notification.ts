@@ -25,6 +25,17 @@ async function main(): Promise<void> {
             '2': now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
           }
         : undefined,
+    namedTemplateVariables:
+      channel === 'whatsapp'
+        ? {
+            visitor_name: 'Test Visitor',
+            reference: 'TEST-NOTIFICATION',
+            assigned_date: now.toLocaleDateString('en-IN'),
+            assigned_time: now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+            venue: 'Test Venue',
+            instructions: 'This is a test message.',
+          }
+        : undefined,
   };
 
   const adapter = channel === 'email' ? new EmailAdapter(config) : new WhatsappAdapter(config);

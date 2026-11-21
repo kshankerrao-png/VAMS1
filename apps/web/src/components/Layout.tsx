@@ -15,7 +15,7 @@ import {
   UserPlus,
   X,
 } from 'lucide-react';
-import type { DashboardStats, Permission } from '@vams/shared';
+import type { DashboardStats, Permission, Role } from '@vams/shared';
 import { ROLE_LABELS } from '@vams/shared';
 import { useAuth } from '../auth/AuthProvider';
 import { api, errorMessage, fieldErrors } from '../lib/api';
@@ -28,6 +28,7 @@ interface NavItem {
   label: string;
   icon: typeof LayoutDashboard;
   permission?: Permission;
+  hiddenFor?: Role[];
   end?: boolean;
   badge?: number;
 }
@@ -66,11 +67,20 @@ export function Layout() {
     },
     { to: '/register', label: 'Register', icon: BookOpen },
     { to: '/reports', label: 'Reports', icon: BarChart3, permission: 'report:read' },
-    { to: '/audit', label: 'Audit Log', icon: ShieldCheck, permission: 'audit:read' },
+    {
+      to: '/audit',
+      label: 'Audit Log',
+      icon: ShieldCheck,
+      permission: 'audit:read',
+      hiddenFor: ['SECRETARY'],
+    },
     { to: '/admin', label: 'Administration', icon: Settings, permission: 'admin:manage' },
   ];
 
-  const visible = navigation.filter((item) => !item.permission || can(item.permission));
+  const visible = navigation.filter(
+    (item) =>
+      (!item.permission || can(item.permission)) && !item.hiddenFor?.includes(user.role),
+  );
 
   const handleLogout = async () => {
     await logout();

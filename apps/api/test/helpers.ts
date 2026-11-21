@@ -33,6 +33,10 @@ export async function createTestApp(): Promise<TestHarness> {
   process.env.TWILIO_AUTH_TOKEN = '';
   process.env.TWILIO_WHATSAPP_FROM = '';
   process.env.TWILIO_CONTENT_SID = '';
+  process.env.ZAVUDEV_API_KEY = '';
+  process.env.ZAVU_API_KEY = '';
+  process.env.ZAVU_WHATSAPP_FROM = '';
+  process.env.ZAVU_TEMPLATE_ID = '';
 
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
   const app = moduleRef.createNestApplication({ rawBody: true });
