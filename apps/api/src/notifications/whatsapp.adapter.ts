@@ -84,15 +84,16 @@ export class WhatsappAdapter {
       };
     }
 
-    if (this.config.zavu.apiKey) {
-      return this.sendViaZavu(message);
+    if (this.config.whatsapp.phoneNumberId && this.config.whatsapp.token) {
+      return this.sendViaMeta(message);
     }
 
-    return this.config.twilio.accountSid && this.config.twilio.authToken && this.config.twilio.from
-      ? this.sendViaTwilio(message)
-      : this.sendViaMeta(message);
-  }
+    if (this.config.twilio.accountSid && this.config.twilio.authToken && this.config.twilio.from) {
+      return this.sendViaTwilio(message);
+    }
 
+    return this.sendViaZavu(message);
+  }
   private async sendViaZavu(message: OutboundMessage): Promise<SendResult> {
     const { apiKey, apiUrl, from, templateId } = this.config.zavu;
     const variables = message.namedTemplateVariables ?? message.templateVariables;
