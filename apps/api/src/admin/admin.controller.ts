@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Inject, Param, Patch, Post, Put, Req } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Inject, Param, Patch, Post, Put, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import {
   NOTIFICATION_CHANNELS,
+  clearDataSchema,
   resetPasswordSchema,
   settingsSchema,
   templateSchema,
@@ -108,5 +109,16 @@ export class AdminController {
   @Get('system')
   system() {
     return this.admin.systemInfo();
+  }
+
+  @Post('clear-data')
+  @HttpCode(200)
+  clearData(
+    @Body() body: unknown,
+    @CurrentUser() user: AuthUser,
+    @Req() request: Request,
+  ) {
+    const input = parseOrThrow(clearDataSchema, body);
+    return this.admin.clearAllData(input.password, user, requestContext(request));
   }
 }

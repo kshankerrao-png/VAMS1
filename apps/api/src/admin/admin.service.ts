@@ -1,8 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import type {
   AppSettings,
   AuthUser,
+  ClearDataResult,
   Permission,
   Role,
   SystemInfo,
@@ -16,7 +17,7 @@ import { SettingsService } from '../settings/settings.module';
 import { PasswordService } from '../auth/password.service';
 import { SessionService } from '../auth/session.service';
 import { toUserRecord, UserRow } from '../users/user.types';
-import { conflict, notFound, badRequest } from '../common/errors';
+import { conflict, forbidden, notFound, badRequest } from '../common/errors';
 import { nowIso } from '../common/time';
 import type { RequestContext } from '../common/decorators';
 
@@ -49,6 +50,63 @@ export class AdminService {
   async listUsers(): Promise<UserRecord[]> {
     const rows = await this.db.all<UserRow>('SELECT * FROM users ORDER BY created_at ASC');
     return rows.map(toUserRecord);
+  }
+
+  async clearAllData(
+    password: string,
+    actor: AuthUser,
+    context: RequestContext,
+  ): Promise<ClearDataResult> {
+    if (!this.matchesClearDataPassword(password)) {
+      await this.audit.log({
+        actor: { id: actor.id, name: actor.name },
+        action: 'DATA_PURGE_DENIED',
+        entityType: 'system',
+        entityId: null,
+        after: { reason: 'invalid_password' },
+        ...context,
+      });
+      throw forbidden('Incorrect password. No data was cleared.');
+    }
+
+    const counts = await this.db.transaction(async () => {
+      const result: ClearDataResult = {
+        requests: await this.countRows('appointment_requests'),
+        visitors: await this.countRows('visitor_profiles'),
+        notifications: await this.countRows('notifications'),
+        auditEntries: await this.countRows('audit_log'),
+      };
+      await this.db.run('DELETE FROM notifications');
+      await this.db.run('DELETE FROM appointment_requests');
+      await this.db.run('DELETE FROM visitor_profiles');
+      await this.db.run('DELETE FROM idempotency_keys');
+      await this.db.run('DELETE FROM counters');
+      await this.db.clearAuditLog();
+      return result;
+    });
+
+    await this.audit.log({
+      actor: { id: actor.id, name: actor.name },
+      action: 'DATA_PURGED',
+      entityType: 'system',
+      entityId: null,
+      after: { ...counts },
+      ...context,
+    });
+    return counts;
+  }
+
+  private async countRows(
+    table: 'appointment_requests' | 'visitor_profiles' | 'notifications' | 'audit_log',
+  ): Promise<number> {
+    const row = await this.db.get<{ count: number }>(`SELECT COUNT(*) AS count FROM ${table}`);
+    return Number(row?.count ?? 0);
+  }
+
+  private matchesClearDataPassword(candidate: string): boolean {
+    const expected = createHash('sha256').update(this.config.adminClearDataPassword).digest();
+    const provided = createHash('sha256').update(candidate).digest();
+    return timingSafeEqual(expected, provided);
   }
 
   async createUser(

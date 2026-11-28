@@ -78,6 +78,11 @@ export const intakeSchema = z.object({
 });
 export type IntakePayload = z.infer<typeof intakeSchema>;
 
+export const clearDataSchema = z.object({
+  password: z.string().min(1, 'Password is required').max(200),
+});
+export type ClearDataInput = z.infer<typeof clearDataSchema>;
+
 export const visitorUpdateSchema = z.object({
   name: z.string().trim().min(2, 'Visitor name is required').max(120),
   designation: optionalText(120, 'Designation'),

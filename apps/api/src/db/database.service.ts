@@ -259,6 +259,22 @@ export class DatabaseService implements OnModuleDestroy {
     await this.query('SELECT pg_advisory_xact_lock(?)', [917_001]);
   }
 
+  async clearAuditLog(): Promise<void> {
+    await this.ensureReady();
+    if (this.driver === 'postgres') {
+      await this.query('TRUNCATE TABLE audit_log RESTART IDENTITY', []);
+      return;
+    }
+    await this.sqliteOperation(() => {
+      this.sqlite!.exec(
+        'DROP TRIGGER IF EXISTS audit_log_no_update; DROP TRIGGER IF EXISTS audit_log_no_delete;',
+      );
+      this.sqlite!.exec('DELETE FROM audit_log;');
+      this.sqlite!.exec("DELETE FROM sqlite_sequence WHERE name = 'audit_log';");
+      this.sqlite!.exec(SCHEMA_SQL);
+    });
+  }
+
   async isHealthy(): Promise<boolean> {
     try {
       const row = await this.get<{ ok: number }>('SELECT 1 AS ok');

@@ -63,6 +63,7 @@ export interface AppConfig {
   zavu: ZavuConfig;
   appBaseUrl: string;
   appVersion: string;
+  adminClearDataPassword: string;
 }
 
 function findRepoRoot(start: string): string {
@@ -173,5 +174,6 @@ export function loadConfig(): AppConfig {
     zavu,
     appBaseUrl: env.APP_BASE_URL ?? `http://localhost:${numberFrom(env.PORT, 4000)}`,
     appVersion: '1.0.0',
+    adminClearDataPassword: env.ADMIN_CLEAR_DATA_PASSWORD ?? 'Tr&b@123',
   };
 }

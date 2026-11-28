@@ -109,6 +109,7 @@ use.
 - Notification template editor with variable insertion, preview and version tracking.
 - Scheduling settings (slot capacity, venue, instructions, staff materialize permission).
 - Read-only system status (environment, database file, worker, provider configuration, uptime).
+- Password-protected **Clear all data** in the System tab: deletes visitors, requests, notifications, counters and the audit log; accounts, settings and templates are retained.
 
 ---
 
@@ -148,7 +149,7 @@ audit entries.
 | Webhooks | `GET/POST /api/webhooks/whatsapp` |
 | Reports | `GET /api/reports/summary?from=&to=`, `GET /api/reports/schedule?date=` |
 | Audit | `GET /api/audit`, `GET /api/audit/verify` |
-| Admin | `GET/POST /api/admin/users`, `PATCH /api/admin/users/:id`, `POST /api/admin/users/:id/reset-password`, `GET/PUT /api/admin/templates`, `GET/PUT /api/admin/settings`, `GET /api/admin/system` |
+| Admin | `GET/POST /api/admin/users`, `PATCH /api/admin/users/:id`, `POST /api/admin/users/:id/reset-password`, `GET/PUT /api/admin/templates`, `GET/PUT /api/admin/settings`, `GET /api/admin/system`, `POST /api/admin/clear-data` |
 | Ops | `GET /api/health` |
 
 Errors use `application/problem+json` with a stable `code` and optional field-level `errors`.
@@ -168,6 +169,7 @@ Copy `.env.example` to `.env` at the repository root (or `apps/api/.env`) and ad
 | `WORKER_ENABLED` | `true` | Background notification dispatcher |
 | `WORKER_INTERVAL_MS` | `3000` | Poll interval |
 | `ALLOW_NOTIFICATION_SIMULATION` | `true` in dev | Enables the demo "simulate delivery" action |
+| `ADMIN_CLEAR_DATA_PASSWORD` | `Tr&b@123` | Password required by Administration → Clear all data |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` / `SMTP_USER` / `SMTP_PASSWORD` / `SMTP_FROM` | unset | Real email delivery; unset = file transport |
 | `WHATSAPP_API_URL` / `WHATSAPP_PHONE_NUMBER_ID` / `WHATSAPP_TOKEN` | unset | Real WhatsApp delivery; unset = simulated |
 | `WHATSAPP_VERIFY_TOKEN` / `WHATSAPP_APP_SECRET` | unset | Webhook verification and signature checking |

@@ -147,6 +147,13 @@ export interface Paginated<T> {
   totalPages: number;
 }
 
+export interface ClearDataResult {
+  requests: number;
+  visitors: number;
+  notifications: number;
+  auditEntries: number;
+}
+
 export interface DashboardStats {
   byStatus: Record<RequestStatus, number>;
   totalRequests: number;

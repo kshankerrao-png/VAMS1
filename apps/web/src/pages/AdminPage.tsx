@@ -11,10 +11,12 @@ import {
   RefreshCw,
   Settings2,
   ShieldCheck,
+  Trash2,
   Users,
 } from 'lucide-react';
 import type {
   AppSettings,
+  ClearDataResult,
   NotificationChannel,
   Role,
   SystemInfo,
@@ -662,6 +664,7 @@ function SettingsTab() {
 
 function SystemTab() {
   const queryClient = useQueryClient();
+  const [clearOpen, setClearOpen] = useState(false);
   const systemQuery = useQuery({
     queryKey: ['admin', 'system'],
     queryFn: () => api<SystemInfo>('/admin/system'),
@@ -743,7 +746,112 @@ function SystemTab() {
           </Alert>
         </div>
       </SectionCard>
+
+      <SectionCard
+        title="Danger zone"
+        description="Irreversible maintenance actions for the administrator."
+        icon={Trash2}
+        className="border-rose-200"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="max-w-2xl text-xs leading-relaxed text-slate-600">
+            <p className="text-[13px] font-semibold text-rose-700">Clear all data</p>
+            <p className="mt-1">
+              Permanently deletes every visitor, appointment request, notification, counter and
+              the audit log. User accounts, settings and notification templates are kept, and
+              signed-in sessions stay active.
+            </p>
+          </div>
+          <Button variant="danger" onClick={() => setClearOpen(true)}>
+            <Trash2 className="size-4" />
+            Clear all data
+          </Button>
+        </div>
+      </SectionCard>
+
+      <ClearDataDialog open={clearOpen} onClose={() => setClearOpen(false)} />
     </div>
+  );
+}
+
+function ClearDataDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const { notify } = useToast();
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      setPassword('');
+      setError(null);
+    }
+  }, [open]);
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      api<ClearDataResult>('/admin/clear-data', {
+        method: 'POST',
+        body: { password },
+      }),
+    onSuccess: (result) => {
+      void queryClient.invalidateQueries();
+      notify(
+        `Data cleared: ${result.requests} requests, ${result.visitors} visitors, ${result.notifications} notifications, ${result.auditEntries} audit entries.`,
+      );
+      onClose();
+    },
+    onError: (caught) => setError(errorMessage(caught)),
+  });
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Clear all data"
+      description="This action is permanent and cannot be undone."
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            type="submit"
+            form="clear-data-form"
+            loading={mutation.isPending}
+            disabled={!password}
+          >
+            <Trash2 className="size-4" />
+            Clear all data
+          </Button>
+        </>
+      }
+    >
+      <form
+        id="clear-data-form"
+        className="space-y-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setError(null);
+          mutation.mutate();
+        }}
+      >
+        <Alert tone="error" title="Deletes all business data">
+          Visitors, requests, notifications, counters and the audit log will be deleted. Accounts,
+          settings and templates are retained.
+        </Alert>
+        <Field label="Administrator password" required hint="Required to authorise the reset.">
+          <Input
+            type="password"
+            autoFocus
+            autoComplete="current-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+        </Field>
+        {error ? <Alert tone="error">{error}</Alert> : null}
+      </form>
+    </Modal>
   );
 }
 
